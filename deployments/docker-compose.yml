@@ -1,0 +1,37 @@
+version: "3.6"
+
+networks:
+  backend:
+
+services:
+  pg_credit_holidays:
+    container_name: pg_credit_holidays
+    image: postgres
+    restart: always
+    env_file: .env
+    ports:
+      - "5431:5432"
+    healthcheck:
+      test: /usr/bin/pg_isready
+      interval: 10s
+      timeout: 10s
+      retries: 5
+    volumes:
+      - ../scripts/create_tables.sql:/docker-entrypoint-initdb.d/create_tables.sql
+    networks:
+      - backend
+
+  app:
+    container_name: app_credit_holidays
+    build:
+      context: ..
+      dockerfile: deployments/Dockerfile
+    ports:
+      - "8080:8080"
+    restart: always
+    env_file: .env
+    depends_on:
+      pg_credit_holidays:
+        condition: service_healthy
+    networks:
+      - backend
