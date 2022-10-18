@@ -14,6 +14,7 @@ RUN apk update \
   && rm -rf /var/cache/apk/*
 RUN addgroup egor && adduser -S egor -u 1000 -G egor
 COPY --chown=egor:egor --from=builder /app/credit_holidays_app .
+COPY --chown=egor:egor ./configs/config.yml .
 RUN chmod +x /app/credit_holidays_app
 USER egor
 EXPOSE 8080
