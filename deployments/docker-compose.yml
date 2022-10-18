@@ -4,11 +4,30 @@ networks:
   backend:
 
 services:
+  app:
+    container_name: app_credit_holidays
+    build:
+      context: ..
+      dockerfile: deployments/Dockerfile
+    ports:
+      - "8080:8080"
+    restart: always
+    environment:
+      - CONFIG_PATH=/app/config.yaml
+    depends_on:
+      pg_credit_holidays:
+        condition: service_healthy
+    networks:
+      - backend
+
   pg_credit_holidays:
     container_name: pg_credit_holidays
     image: postgres
     restart: always
-    env_file: .env
+    environment:
+      - POSTGRES_USER=egor
+      - POSTGRES_PASSWORD=3601
+      - POSTGRES_DB=credit_holidays
     ports:
       - "5431:5432"
     healthcheck:
@@ -18,20 +37,5 @@ services:
       retries: 5
     volumes:
       - ../scripts/create_tables.sql:/docker-entrypoint-initdb.d/create_tables.sql
-    networks:
-      - backend
-
-  app:
-    container_name: app_credit_holidays
-    build:
-      context: ..
-      dockerfile: deployments/Dockerfile
-    ports:
-      - "8080:8080"
-    restart: always
-    env_file: .env
-    depends_on:
-      pg_credit_holidays:
-        condition: service_healthy
     networks:
       - backend
