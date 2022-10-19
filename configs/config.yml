@@ -6,10 +6,11 @@ postgres:
   dbname: "credit_holidays"
 
 timeout:
-  db_insert: "6s"
+  db_insert: "3s"
   db_select: "3s"
   db_update: "3s"
   db_delete: "3s"
+  db_transaction: "3s"
 
 log:
   level: "info"
