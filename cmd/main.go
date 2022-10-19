@@ -1,22 +1,54 @@
 package main
 
 import (
-	"credit_holidays/internal/handlers"
-	"github.com/gin-gonic/gin"
-	"log"
+	"github.com/knadh/koanf"
+	"github.com/knadh/koanf/parsers/yaml"
+	"github.com/knadh/koanf/providers/file"
+	log "github.com/sirupsen/logrus"
+	"os"
 )
 
 func main() {
-	r := gin.Default()
+	confPath, ok := os.LookupEnv("CONFIG_PATH")
+	if !ok {
+		log.Fatal("can't get config path from environment")
+	}
 
-	r.GET("/get_balance", handlers.GetBalance)
-	r.GET("/get_history", handlers.GetHistory)
-	r.POST("/add_money", handlers.AddMoney)
+	cfg := koanf.New(".")
+	if err := cfg.Load(file.Provider(confPath), yaml.Parser()); err != nil {
+		log.WithError(err).WithField("path", confPath).Fatal("can't read config")
+	}
 
-	r.POST("/init_order", handlers.InitOrder)
-	r.POST("/proof_order", handlers.ProofOrder)
+	log.SetFormatter(&log.TextFormatter{
+		TimestampFormat: "02-01-2006 15:04:05",
+		FullTimestamp:   true,
+	})
 
-	r.GET("/generate_repost", handlers.GenerateReport)
+	if level, err := log.ParseLevel(cfg.String("log.level")); err != nil {
+		log.WithError(err).Fatal("can't get log level from config")
+	} else {
+		log.SetLevel(level)
+	}
 
-	log.Fatal(r.Run(":8080"))
+	/*
+		handler = handlers.InitializeHandler(cfg)
+
+		r := gin.Default()
+
+		userGroup := r.Group("/user")
+		userGroup.GET("/get_balance", handler.GetBalance)
+		userGroup.GET("/get_history", handler.GetHistory)
+		userGroup.POST("/add_money", handler.AddMoney)
+		userGroup.POST("/withdraw_money", handler.WithdrawMoney)
+		userGroup.POST("/transfer_money", handler.TransferMoney)
+
+		orderGroup := r.Group("/order")
+		orderGroup.POST("/init_order", handler.InitOrder)
+		orderGroup.POST("/change_order_status", handler.ChangeOrderStatus)
+
+		utilsGroup := r.Group("/utils")
+		utilsGroup.GET("/generate_report", handler.GenerateReport)
+
+		log.Fatal(r.Run(":8080"))
+	*/
 }
