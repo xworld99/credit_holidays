@@ -2,9 +2,9 @@ CREATE TABLE IF NOT EXISTS users (
     -- unique id, not serial because of task text
     id int PRIMARY KEY,
     -- current active balance of user
-    balance money NOT NULL default 0 CHECK(balance >= 0),
+    balance money NOT NULL default 0.0 CHECK(balance >= 0.0),
     -- reserved balance of user
-    frozen_balance money DEFAULT 0 CHECK(frozen_balance >= 0)
+    frozen_balance money DEFAULT 0.0 CHECK(frozen_balance >= 0.0)
 );
 
 CREATE TABLE IF NOT EXISTS services (
@@ -37,6 +37,6 @@ CREATE TABLE IF NOT EXISTS orders (
     proofed_at timestamp DEFAULT null,
     user_id integer REFERENCES users(id) ON DELETE CASCADE,
     service_id INTEGER REFERENCES services(id) ON DELETE CASCADE,
-    amount money NOT NULL CHECK(amount >= 0),
+    amount money NOT NULL CHECK(amount >= 0.0),
     status text DEFAULT 'in_progress' CHECK(status in ('in_progress', 'success', 'declined'))
 );

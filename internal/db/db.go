@@ -4,6 +4,7 @@ import (
 	"context"
 	"credit_holidays/internal/models"
 	"database/sql"
+	"time"
 )
 
 type CreditHolidaysDB interface {
@@ -31,4 +32,9 @@ type CreditHolidaysDB interface {
 		models.User,
 		models.Service,
 	) (models.Order, models.User, models.Service, error)
+	GetLastOrderMonth(context.Context, time.Time) (models.Order, error)
+
+	// reports forming
+	FormReport(context.Context, models.CSVData) (models.CSVData, error)
+	GetHistoryFrame(context.Context, models.HistoryFrame) (models.HistoryFrame, error)
 }

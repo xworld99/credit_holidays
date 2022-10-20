@@ -1,32 +1,22 @@
 package handlers
 
 import (
+	"credit_holidays/internal/models"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"net/http"
 )
 
 func (h *Handler) AddOrder(ctx *gin.Context) {
-	params := ctx.Request.URL.Query()
+	var reqData models.AddOrderRequest
 
-	// parsing query
-	userId, ok := params["user_id"]
-	if !ok {
-		ctx.JSON(http.StatusBadRequest, "cant extract user id from query")
-	}
-
-	serviceId, ok := params["service_id"]
-	if !ok {
-		ctx.JSON(http.StatusBadRequest, "cant extract service id from query")
-	}
-
-	amount, ok := params["amount"]
-	if !ok {
-		ctx.JSON(http.StatusBadRequest, "cant extract amount from query")
+	if err := ctx.BindJSON(&reqData); err != nil {
+		ctx.JSON(http.StatusBadRequest, "invalid request body")
+		return
 	}
 
 	// create order
-	resp, err := h.ctrl.AddOrder(ctx, userId[0], serviceId[0], amount[0])
+	resp, err := h.ctrl.AddOrder(ctx, reqData)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, fmt.Sprintf("%w", err))
 	}
@@ -35,23 +25,18 @@ func (h *Handler) AddOrder(ctx *gin.Context) {
 }
 
 func (h *Handler) ChangeOrderStatus(ctx *gin.Context) {
-	params := ctx.Request.URL.Query()
+	var reqData models.ChangeOrderRequest
 
-	// parsing query
-	orderId, ok := params["order_id"]
-	if !ok {
-		ctx.JSON(http.StatusBadRequest, "cant extract order id from query")
+	if err := ctx.BindJSON(&reqData); err != nil {
+		ctx.JSON(http.StatusBadRequest, "invalid request body")
+		return
 	}
 
-	action, ok := params["action"]
-	if !ok {
-		ctx.JSON(http.StatusBadRequest, "cant extract order id from query")
-	}
-
-	// create order
-	resp, err := h.ctrl.ChangeOrderStatus(ctx, orderId[0], action[0])
+	// change order status
+	resp, err := h.ctrl.ChangeOrderStatus(ctx, reqData)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, fmt.Sprintf("%w", err))
+		ctx.JSON(http.StatusBadRequest, err)
+		return
 	}
 
 	ctx.JSON(http.StatusOK, resp)
