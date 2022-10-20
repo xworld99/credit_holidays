@@ -1,6 +1,8 @@
 package main
 
 import (
+	"credit_holidays/internal/handlers"
+	"github.com/gin-gonic/gin"
 	"github.com/knadh/koanf"
 	"github.com/knadh/koanf/parsers/yaml"
 	"github.com/knadh/koanf/providers/file"
@@ -30,25 +32,21 @@ func main() {
 		log.SetLevel(level)
 	}
 
-	/*
-		handler = handlers.InitializeHandler(cfg)
+	handler, err := handlers.InitializeHandler(cfg)
+	if err != nil {
+		log.WithError(err).WithField("path", confPath).Fatal("can't init handler")
+	}
 
-		r := gin.Default()
+	r := gin.Default()
 
-		userGroup := r.Group("/user")
-		userGroup.GET("/get_balance", handler.GetBalance)
-		userGroup.GET("/get_history", handler.GetHistory)
-		userGroup.POST("/add_money", handler.AddMoney)
-		userGroup.POST("/withdraw_money", handler.WithdrawMoney)
-		userGroup.POST("/transfer_money", handler.TransferMoney)
+	userGroup := r.Group("/user")
+	userGroup.GET("/get_balance", handler.GetBalance)
 
-		orderGroup := r.Group("/order")
-		orderGroup.POST("/init_order", handler.InitOrder)
-		orderGroup.POST("/change_order_status", handler.ChangeOrderStatus)
+	orderGroup := r.Group("/order")
+	orderGroup.POST("/add_order", handler.AddOrder)
+	orderGroup.POST("/change_order_status", handler.ChangeOrderStatus)
 
-		utilsGroup := r.Group("/utils")
-		utilsGroup.GET("/generate_report", handler.GenerateReport)
+	r.Static("/reports", cfg.String("path.static"))
 
-		log.Fatal(r.Run(":8080"))
-	*/
+	log.Fatal(r.Run(":8080"))
 }
