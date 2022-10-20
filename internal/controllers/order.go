@@ -52,16 +52,16 @@ func handleWithdraw(order models.Order, user models.User, service models.Service
 	return order, user, err
 }
 
-func (c *Controller) AddOrder(ctx context.Context, userId, serviceId, amount string) (models.Order, error) {
+func (c *Controller) AddOrder(ctx context.Context, orderInfo models.AddOrderRequest) (models.Order, error) {
 	var err error
 
 	// validate params
-	uid, sid, am, err := validateOrderParams(userId, serviceId, amount)
+	err = validateOrderParams(orderInfo)
 	if err != nil {
 		return models.Order{}, err
 	}
 
-	user, service, order := models.User{Id: uid}, models.Service{Id: sid}, models.Order{}
+	user, service, order := models.User{Id: orderInfo.UserId}, models.Service{Id: orderInfo.ServiceId}, models.Order{}
 
 	// get service
 	service, err = c.getServiceInfo(ctx, service)
@@ -88,7 +88,7 @@ func (c *Controller) AddOrder(ctx context.Context, userId, serviceId, amount str
 	// create new order
 	order.UserId = user.Id
 	order.ServiceId = service.Id
-	order.Amount = am
+	order.Amount = orderInfo.Amount
 	order, err = c.db.CreateOrder(ctxTm, tx, order)
 	if err != nil {
 		return models.Order{}, err
@@ -151,11 +151,11 @@ func declineOrder(order models.Order, user models.User, service models.Service) 
 
 }
 
-func (c *Controller) ChangeOrderStatus(ctx context.Context, orderId, action string) (models.Order, error) {
+func (c *Controller) ChangeOrderStatus(ctx context.Context, orderInfo models.ChangeOrderRequest) (models.Order, error) {
 	var err error
 
 	// validate params
-	oid, action, err := validateChangeStatusParams(orderId, action)
+	err = validateChangeStatusParams(orderInfo)
 	if err != nil {
 		return models.Order{}, err
 	}
@@ -171,7 +171,7 @@ func (c *Controller) ChangeOrderStatus(ctx context.Context, orderId, action stri
 	defer c.db.RollbackTransaction(tx)
 
 	// get full info about order, user and service by order_id
-	order, user, service := models.Order{Id: oid}, models.User{}, models.Service{}
+	order, user, service := models.Order{Id: orderInfo.OrderId}, models.User{}, models.Service{}
 	order, user, service, err = c.db.GetFullOrderInfo(ctx, tx, order, user, service)
 	if err != nil {
 		return models.Order{}, err
@@ -182,7 +182,7 @@ func (c *Controller) ChangeOrderStatus(ctx context.Context, orderId, action stri
 	}
 
 	// manipulate with balance
-	if action == "proof" {
+	if orderInfo.Action == "proof" {
 		order, user, err = acceptOrder(order, user, service)
 	} else {
 		order, user, err = declineOrder(order, user, service)
