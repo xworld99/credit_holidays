@@ -7,8 +7,8 @@ import (
 	"fmt"
 )
 
-func (c *Controller) GetBalance(ctx context.Context, userId string) (models.User, error) {
-	id, err := validateId(userId)
+func (c *Controller) GetBalance(ctx context.Context, userId models.GetBalanceRequest) (models.User, error) {
+	id, err := validateId(string(userId))
 	if err != nil {
 		return models.User{}, err
 	}
