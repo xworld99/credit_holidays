@@ -9,6 +9,6 @@ type Handler struct {
 	ctrl *controllers.Controller
 }
 
-func NewHandler(s *controllers.Controller) (*Handler, error) {
-	return &Handler{ctrl: s}, nil
+func NewHandler(c *controllers.Controller) (*Handler, error) {
+	return &Handler{ctrl: c}, nil
 }
