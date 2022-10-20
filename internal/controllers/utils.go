@@ -2,9 +2,24 @@ package controllers
 
 import (
 	"credit_holidays/internal/consts"
+	"credit_holidays/internal/models"
+	"encoding/csv"
 	"fmt"
+	"os"
+	fp "path/filepath"
 	"strconv"
+	"time"
 )
+
+func parseTime(t string) (time.Time, error) {
+	layout := "02-02-2002"
+	res, err := time.Parse(layout, t)
+	if err != nil {
+		return time.Time{}, fmt.Errorf("time isnt fits layout: '%s'", layout)
+	}
+
+	return res, nil
+}
 
 func validateId(id string) (int64, error) {
 	valId, err := strconv.ParseInt(id, 10, 64)
@@ -17,51 +32,134 @@ func validateId(id string) (int64, error) {
 	return valId, nil
 }
 
-func validateMoney(amount string) (float64, error) {
-	valAmount, err := strconv.ParseFloat(amount, 64)
-	if err != nil {
-		return 0, fmt.Errorf("amount is an invalid float")
+func validateOrderParams(request models.AddOrderRequest) error {
+	if request.UserId <= 0 {
+		return fmt.Errorf("user id should be > 0")
 	}
-	if valAmount <= 0 {
-		return 0, fmt.Errorf("negative amount isnt allowed")
+	if request.ServiceId <= 0 {
+		return fmt.Errorf("service id should be > 0")
 	}
-	return valAmount, nil
+	if request.Amount <= 0 {
+		return fmt.Errorf("amount should be > 0")
+	}
+
+	return nil
 }
 
-func validateOrderParams(userId, serviceId, amount string) (int64, int64, float64, error) {
-	var uid, sid int64
-	var err error
-	var am float64
-
-	uid, err = validateId(userId)
-	if err != nil {
-		return 0, 0, 0, err
-	}
-	sid, err = validateId(serviceId)
-	if err != nil {
-		return 0, 0, 0, err
-	}
-	am, err = validateMoney(amount)
-	if err != nil {
-		return 0, 0, 0, err
+func validateChangeStatusParams(request models.ChangeOrderRequest) error {
+	if request.OrderId <= 0 {
+		return fmt.Errorf("order id should be > 0")
 	}
 
-	return uid, sid, am, nil
+	if _, ok := consts.OrderActions[request.Action]; !ok {
+		return fmt.Errorf("unknown action: %s", request.Action)
+	}
+
+	return nil
 }
 
-func validateChangeStatusParams(orderId, action string) (int64, string, error) {
-	var oid int64
+func validateNonNegativeInt(i string) (int, error) {
+	val, err := strconv.Atoi(i)
+	if err != nil {
+		return 0, fmt.Errorf("param is an invalid int")
+	}
+	if val < 0 {
+		return 0, fmt.Errorf("param should be non negative")
+	}
+	return val, nil
+}
+
+func validateGetHistoryParams(request models.GetHistoryRequest) (models.HistoryFrame, error) {
+	var frame models.HistoryFrame
 	var err error
 
-	oid, err = validateId(orderId)
+	frame.UserId, err = validateId(request.UserId)
 	if err != nil {
-		return 0, "", err
+		return models.HistoryFrame{}, err
 	}
 
-	if _, ok := consts.OrderActions[action]; !ok {
-		return 0, "", fmt.Errorf("unknown action: %s", action)
+	frame.FromDate, err = parseTime(request.FromDate)
+	if err != nil {
+		return models.HistoryFrame{}, err
+	}
+	frame.ToDate, err = parseTime(request.ToDate)
+	if err != nil {
+		return models.HistoryFrame{}, err
+	}
+	if frame.FromDate.After(frame.ToDate) {
+		return models.HistoryFrame{}, fmt.Errorf("from date is greater then to date")
 	}
 
-	return oid, action, nil
+	frame.Offset, err = validateNonNegativeInt(request.Offset)
+	if err != nil {
+		return models.HistoryFrame{}, fmt.Errorf("offset should be non negative int")
+	}
 
+	frame.Limit, err = validateNonNegativeInt(request.Limit)
+	if err != nil {
+		return models.HistoryFrame{}, fmt.Errorf("limit should be non negative int")
+	}
+
+	if _, ok := consts.SortingType[request.OrderBy]; !ok {
+		return models.HistoryFrame{}, fmt.Errorf("unknown order by type")
+	}
+
+	return frame, nil
+}
+
+func validateSaveReportParams(request models.SaveReportRequest) (models.CSVData, error) {
+	var res models.CSVData
+	var err error
+
+	res.Period, err = parseTime(string(request))
+	if err != nil {
+		return models.CSVData{}, err
+	}
+
+	return res, nil
+}
+
+func createReportPath(period, lastOperation time.Time) string {
+	return fmt.Sprintf("%d-%d-%d.csv", period.Month(), period.Year(), lastOperation.Unix())
+}
+
+func fileAlreadyExists(dir, name string) bool {
+	if _, err := os.Stat(fmt.Sprintf("%s/%s", dir, name)); err == nil {
+		return true
+	}
+	return false
+}
+
+func saveReport(dir, filepath string, data models.CSVData) error {
+	f, err := os.Create(fmt.Sprintf("%s/%s", dir, filepath))
+	defer f.Close()
+
+	if err != nil {
+		return fmt.Errorf("cant create file")
+	}
+
+	writer := csv.NewWriter(f)
+	defer writer.Flush()
+
+	for _, r := range data.ToStringSlice() {
+		writer.Write(r)
+	}
+
+	return nil
+}
+
+func deleteUnnecessaryReport(dir, filepath string, period time.Time) {
+	absPath := fmt.Sprintf("%s/%s", dir, filepath)
+	files, _ := fp.Glob(fmt.Sprintf("%s/%d-%d-*.csv", dir, period.Month(), period.Year()))
+
+	if files == nil {
+		return
+	}
+
+	for _, f := range files {
+		if f == absPath {
+			continue
+		}
+		os.Remove(f)
+	}
 }
