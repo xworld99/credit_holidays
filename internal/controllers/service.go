@@ -10,7 +10,6 @@ func (c *Controller) getServiceInfo(ctx context.Context, service models.Service)
 	defer cancel()
 
 	service, err := c.db.GetServiceById(ctxTm, service)
-	// check this error
 	if err != nil {
 		return models.Service{}, err
 	}
