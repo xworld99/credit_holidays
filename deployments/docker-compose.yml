@@ -13,6 +13,7 @@ services:
       - "8080:8080"
     restart: always
     environment:
+      - TZ=Europe/Moscow
       - CONFIG_PATH=/app/config.yaml
     depends_on:
       pg_credit_holidays:
@@ -25,6 +26,7 @@ services:
     image: postgres
     restart: always
     environment:
+      - TZ=Europe/Moscow
       - POSTGRES_USER=egor
       - POSTGRES_PASSWORD=3601
       - POSTGRES_DB=credit_holidays
