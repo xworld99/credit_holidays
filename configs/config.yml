@@ -14,3 +14,6 @@ timeout:
 
 log:
   level: "info"
+
+path:
+  static: "/app/static"
