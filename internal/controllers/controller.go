@@ -14,9 +14,10 @@ type Controller struct {
 	deleteTm      time.Duration
 	insertTm      time.Duration
 	transactionTm time.Duration
+	staticPath    string
 }
 
-func NewService(cfg *koanf.Koanf, db db.CreditHolidaysDB) (*Controller, error) {
+func NewController(cfg *koanf.Koanf, db db.CreditHolidaysDB) (*Controller, error) {
 	return &Controller{
 		db:            db,
 		selectTm:      cfg.Duration("timeout.db_select"),
@@ -24,5 +25,6 @@ func NewService(cfg *koanf.Koanf, db db.CreditHolidaysDB) (*Controller, error) {
 		deleteTm:      cfg.Duration("timeout.db_delete"),
 		insertTm:      cfg.Duration("timeout.db_insert"),
 		transactionTm: cfg.Duration("timeout.db_transaction"),
+		staticPath:    cfg.String("path.static"),
 	}, nil
 }
