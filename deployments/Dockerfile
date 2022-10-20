@@ -16,6 +16,7 @@ RUN addgroup egor && adduser -S egor -u 1000 -G egor
 COPY --chown=egor:egor --from=builder /app/credit_holidays_app .
 COPY --chown=egor:egor ./configs/config.yml .
 RUN chmod +x /app/credit_holidays_app
+RUN mkdir static
 USER egor
 EXPOSE 8080
 CMD ["/app/credit_holidays_app"]
