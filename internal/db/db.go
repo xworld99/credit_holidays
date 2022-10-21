@@ -10,8 +10,7 @@ import (
 type CreditHolidaysDB interface {
 	// general
 	Begin(context.Context, sql.IsolationLevel) (*sql.Tx, error)
-	CommitTransaction(*sql.Tx) error
-	RollbackTransaction(*sql.Tx) error
+	Close()
 
 	// users interaction
 	GetUserById(context.Context, models.User) (models.User, error)
