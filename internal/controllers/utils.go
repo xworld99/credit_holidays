@@ -15,7 +15,7 @@ func parseTime(t string) (time.Time, error) {
 	layout := "02-02-2002"
 	res, err := time.Parse(layout, t)
 	if err != nil {
-		return time.Time{}, fmt.Errorf("time isnt fits layout: '%s'", layout)
+		return time.Time{}, fmt.Errorf("time isnt fits layout: '%s': %w", layout, err)
 	}
 
 	return res, nil
@@ -61,7 +61,7 @@ func validateChangeStatusParams(request models.ChangeOrderRequest) error {
 func validateNonNegativeInt(i string) (int, error) {
 	val, err := strconv.Atoi(i)
 	if err != nil {
-		return 0, fmt.Errorf("param is an invalid int")
+		return 0, fmt.Errorf("param is an invalid int: %w", err)
 	}
 	if val < 0 {
 		return 0, fmt.Errorf("param should be non negative")
@@ -92,12 +92,12 @@ func validateGetHistoryParams(request models.GetHistoryRequest) (models.HistoryF
 
 	frame.Offset, err = validateNonNegativeInt(request.Offset)
 	if err != nil {
-		return models.HistoryFrame{}, fmt.Errorf("offset should be non negative int")
+		return models.HistoryFrame{}, fmt.Errorf("offset %s should be non negative int: %w", request.Offset, err)
 	}
 
 	frame.Limit, err = validateNonNegativeInt(request.Limit)
 	if err != nil {
-		return models.HistoryFrame{}, fmt.Errorf("limit should be non negative int")
+		return models.HistoryFrame{}, fmt.Errorf("limit %s should be non negative int: %w", request.Limit, err)
 	}
 
 	if _, ok := consts.SortingType[request.OrderBy]; !ok {
@@ -107,7 +107,7 @@ func validateGetHistoryParams(request models.GetHistoryRequest) (models.HistoryF
 	return frame, nil
 }
 
-func validateSaveReportParams(request models.SaveReportRequest) (models.CSVData, error) {
+func validateSaveReportParams(request models.GenerateReportRequest) (models.CSVData, error) {
 	var res models.CSVData
 	var err error
 
@@ -135,20 +135,22 @@ func saveReport(dir, filepath string, data models.CSVData) error {
 	defer f.Close()
 
 	if err != nil {
-		return fmt.Errorf("cant create file")
+		return fmt.Errorf("cant create file: %w", err)
 	}
 
 	writer := csv.NewWriter(f)
 	defer writer.Flush()
 
 	for _, r := range data.ToStringSlice() {
-		writer.Write(r)
+		if err = writer.Write(r); err != nil {
+			return fmt.Errorf("cant write data in file: %w", err)
+		}
 	}
 
 	return nil
 }
 
-func deleteUnnecessaryReport(dir, filepath string, period time.Time) {
+func deleteUnnecessaryReports(dir, filepath string, period time.Time) {
 	absPath := fmt.Sprintf("%s/%s", dir, filepath)
 	files, _ := fp.Glob(fmt.Sprintf("%s/%d-%d-*.csv", dir, period.Month(), period.Year()))
 
