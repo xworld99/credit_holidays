@@ -1,13 +1,14 @@
 package handlers
 
 import (
+	"credit_holidays/internal/consts"
 	"credit_holidays/internal/models"
 	"fmt"
 	"github.com/gin-gonic/gin"
+	log "github.com/sirupsen/logrus"
 	"net/http"
 )
 
-// month-year -> csv file
 func (h *Handler) GenerateReport(ctx *gin.Context) {
 	ctx.JSON(http.StatusBadRequest, struct{}{})
 }
@@ -17,17 +18,20 @@ func (h *Handler) GetUserHistory(ctx *gin.Context) {
 
 	userId, ok := params["user_id"]
 	if !ok {
-		ctx.JSON(http.StatusBadRequest, "cant extract user id from query")
+		log.WithError(fmt.Errorf("cant find user_id in req query")).Error("cant process request body")
+		ctx.JSON(http.StatusBadRequest, consts.ErrorDescriptions[http.StatusBadRequest])
 		return
 	}
 	fromDate, ok := params["from_date"]
 	if !ok {
-		ctx.JSON(http.StatusBadRequest, "cant extract from date from query")
+		log.WithError(fmt.Errorf("cant find from_date in req query")).Error("cant process request body")
+		ctx.JSON(http.StatusBadRequest, consts.ErrorDescriptions[http.StatusBadRequest])
 		return
 	}
 	toDate, ok := params["to_date"]
 	if !ok {
-		ctx.JSON(http.StatusBadRequest, "cant extract to date from query")
+		log.WithError(fmt.Errorf("cant find to_date in req query")).Error("cant process request body")
+		ctx.JSON(http.StatusBadRequest, consts.ErrorDescriptions[http.StatusBadRequest])
 		return
 	}
 	orderBy, ok := params["order_by"]
@@ -52,8 +56,8 @@ func (h *Handler) GetUserHistory(ctx *gin.Context) {
 		OrderBy:  orderBy[0],
 	})
 
-	if err != nil {
-		ctx.JSON(http.StatusBadRequest, err)
+	if err.Err != nil {
+		ctx.JSON(err.Type, consts.ErrorDescriptions[err.Type])
 		return
 	}
 
@@ -62,8 +66,9 @@ func (h *Handler) GetUserHistory(ctx *gin.Context) {
 
 func (h *Handler) GetServicesList(ctx *gin.Context) {
 	resp, err := h.ctrl.GetServicesList(ctx)
-	if err != nil {
-		ctx.JSON(http.StatusBadRequest, fmt.Sprintf("%w", err))
+	if err.Err != nil {
+		log.WithError(err.Err).Error("cant extract services list from db")
+		ctx.JSON(err.Type, consts.ErrorDescriptions[err.Type])
 		return
 	}
 
