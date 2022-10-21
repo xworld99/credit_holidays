@@ -4,72 +4,95 @@ import (
 	"context"
 	"credit_holidays/internal/models"
 	"fmt"
+	"net/http"
 )
 
-func (c *Controller) GetServicesList(ctx context.Context) ([]models.Service, error) {
-	ctxTm, cancel := context.WithTimeout(ctx, c.selectTm)
+func (c *Controller) GetServicesList(ctx context.Context) ([]models.Service, models.InternalError) {
+	var err models.InternalError
+	var res []models.Service
+
+	ctxTm, cancel := context.WithTimeout(ctx, c.dbTm)
 	defer cancel()
 
-	res, err := c.db.GetServicesList(ctxTm)
-	if err != nil {
+	res, err.Err = c.db.GetServicesList(ctxTm)
+	if err.Err != nil {
+		err.Type = http.StatusInternalServerError
+		err.Err = fmt.Errorf("cant get services list: %w", err.Err)
 		return nil, err
 	}
 
-	return res, nil
+	return res, err
 }
 
-func (c *Controller) GetHistory(ctx context.Context, request models.GetHistoryRequest) (models.HistoryFrame, error) {
-	var err error
-	history, err := validateGetHistoryParams(request)
-	if err != nil {
-		return models.HistoryFrame{}, nil
-	}
+func (c *Controller) GetHistory(
+	ctx context.Context,
+	request models.GetHistoryRequest,
+) (models.HistoryFrame, models.InternalError) {
+	var err models.InternalError
+	var history models.HistoryFrame
 
-	ctxTm, cancel := context.WithTimeout(ctx, c.selectTm)
-	defer cancel()
-
-	history, err = c.db.GetHistoryFrame(ctxTm, history)
-	if err != nil {
+	history, err.Err = validateGetHistoryParams(request)
+	if err.Err != nil {
+		err.Type = http.StatusBadRequest
+		err.Err = fmt.Errorf("validation error: %w", err.Err)
 		return models.HistoryFrame{}, err
 	}
 
-	return history, nil
+	ctxTm, cancel := context.WithTimeout(ctx, c.dbTm)
+	defer cancel()
+
+	history, err.Err = c.db.GetHistoryFrame(ctxTm, history)
+	if err.Err != nil {
+		err.Type = http.StatusInternalServerError
+		err.Err = fmt.Errorf("cant get history frame: %w", err.Err)
+		return models.HistoryFrame{}, err
+	}
+
+	return history, err
 }
 
-func (c *Controller) SaveReport(ctx context.Context, request models.SaveReportRequest) (string, error) {
-	var err error
+func (c *Controller) GenerateReport(ctx context.Context, request models.GenerateReportRequest) (string, models.InternalError) {
+	var err models.InternalError
+	var csvdata models.CSVData
 
-	csvdata, err := validateSaveReportParams(request)
-	if err != nil {
+	csvdata, err.Err = validateSaveReportParams(request)
+	if err.Err != nil {
+		err.Type = http.StatusBadRequest
+		err.Err = fmt.Errorf("validation error: %w", err.Err)
 		return "", err
 	}
 
-	ctxTm1, cancel1 := context.WithTimeout(ctx, c.selectTm)
-	defer cancel1()
-	order, err := c.db.GetLastOrderMonth(ctxTm1, csvdata.Period)
-	if err != nil {
+	ctxTm, cancel := context.WithTimeout(ctx, c.dbTm)
+	defer cancel()
+
+	var order models.Order
+	order, err.Err = c.db.GetLastOrderMonth(ctxTm, csvdata.Period)
+	if err.Err != nil {
+		err.Type = http.StatusInternalServerError
+		err.Err = fmt.Errorf("cant get order: %w", err.Err)
 		return "", err
 	}
 
 	filepath := createReportPath(csvdata.Period, order.CreatedAt)
 	if fileAlreadyExists(c.staticPath, filepath) {
-		return filepath, nil
+		return filepath, err
 	}
 
-	ctxTm, cancel := context.WithTimeout(ctx, c.selectTm)
-	defer cancel()
-
-	csvdata, err = c.db.FormReport(ctxTm, csvdata)
-	if err != nil {
+	csvdata, err.Err = c.db.FormReport(ctxTm, csvdata)
+	if err.Err != nil {
+		err.Type = http.StatusInternalServerError
+		err.Err = fmt.Errorf("cant form csvfile content: %w", err.Err)
 		return "", err
 	}
 
-	err = saveReport(c.staticPath, filepath, csvdata)
-	if err != nil {
-		return "", fmt.Errorf("internal server error")
+	err.Err = saveReport(c.staticPath, filepath, csvdata)
+	if err.Err != nil {
+		err.Type = http.StatusInternalServerError
+		err.Err = fmt.Errorf("cant save csvfile: %w", err.Err)
+		return "", err
 	}
 
-	deleteUnnecessaryReport(c.staticPath, filepath, csvdata.Period)
+	deleteUnnecessaryReports(c.staticPath, filepath, csvdata.Period)
 
-	return filepath, nil
+	return filepath, err
 }

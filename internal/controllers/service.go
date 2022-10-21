@@ -5,14 +5,15 @@ import (
 	"credit_holidays/internal/models"
 )
 
-func (c *Controller) getServiceInfo(ctx context.Context, service models.Service) (models.Service, error) {
-	ctxTm, cancel := context.WithTimeout(ctx, c.selectTm)
+func (c *Controller) getServiceInfo(ctx context.Context, service *models.Service) error {
+	ctxTm, cancel := context.WithTimeout(ctx, c.dbTm)
 	defer cancel()
 
-	service, err := c.db.GetServiceById(ctxTm, service)
+	var err error
+	*service, err = c.db.GetServiceById(ctxTm, *service)
 	if err != nil {
-		return models.Service{}, err
+		return err
 	}
 
-	return service, nil
+	return nil
 }
