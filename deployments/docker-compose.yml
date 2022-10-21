@@ -14,7 +14,7 @@ services:
     restart: always
     environment:
       - TZ=Europe/Moscow
-      - CONFIG_PATH=/app/config.yaml
+      - CONFIG_PATH=/app/configs/config.yml
     depends_on:
       pg_credit_holidays:
         condition: service_healthy
@@ -33,9 +33,9 @@ services:
     ports:
       - "5431:5432"
     healthcheck:
-      test: /usr/bin/pg_isready
-      interval: 10s
-      timeout: 10s
+      test: ["CMD-SHELL", "pg_isready -d credit_holidays -U egor -h localhost -p 5432"]
+      interval: 5s
+      timeout: 5s
       retries: 5
     volumes:
       - ../scripts/create_tables.sql:/docker-entrypoint-initdb.d/create_tables.sql
