@@ -2,86 +2,57 @@ package controllers
 
 import (
 	"context"
+	"credit_holidays/internal/consts"
 	"credit_holidays/internal/models"
 	"database/sql"
 	"fmt"
+	"net/http"
 )
 
 // logic for working with orders
 
-func handleAccrual(order models.Order, user models.User, service models.Service) (models.Order, models.User, error) {
-	if service.ConfNeeded {
-		user.FrozenBalance += order.Amount
-		order.Status = "in_progress"
-		order.ProofedAtStr = "null"
-	} else {
-		user.Balance += order.Amount
-		order.Status = "success"
-		order.ProofedAtStr = "now()"
-	}
-
-	return order, user, nil
-}
-
-func handleWithdraw(order models.Order, user models.User, service models.Service) (models.Order, models.User, error) {
-	var err error
-
-	if service.ConfNeeded {
-		if user.Balance-order.Amount >= 0 {
-			user.FrozenBalance += order.Amount
-			user.Balance -= order.Amount
-			order.Status = "in_progress"
-			order.ProofedAtStr = "null"
-		} else {
-			order.Status = "declined"
-			order.ProofedAtStr = "now()"
-			err = fmt.Errorf("not enough money on balance")
-		}
-	} else {
-		if user.Balance-order.Amount >= 0 {
-			user.Balance -= order.Amount
-			order.Status = "success"
-			order.ProofedAtStr = "now()"
-		} else {
-			order.Status = "declined"
-			order.ProofedAtStr = "now()"
-			err = fmt.Errorf("not enough money on balance")
-		}
-	}
-
-	return order, user, err
-}
-
-func (c *Controller) AddOrder(ctx context.Context, orderInfo models.AddOrderRequest) (models.Order, error) {
-	var err error
+func (c *Controller) AddOrder(
+	ctx context.Context,
+	orderInfo models.AddOrderRequest,
+) (models.Order, models.InternalError) {
+	var err models.InternalError
 
 	// validate params
-	err = validateOrderParams(orderInfo)
-	if err != nil {
+	err.Err = validateOrderParams(orderInfo)
+	if err.Err != nil {
+		err.Type = http.StatusBadRequest
+		err.Err = fmt.Errorf("validation error: %w", err.Err)
 		return models.Order{}, err
 	}
 
 	user, service, order := models.User{Id: orderInfo.UserId}, models.Service{Id: orderInfo.ServiceId}, models.Order{}
 
 	// get service
-	service, err = c.getServiceInfo(ctx, service)
-	if err != nil {
+	err.Err = c.getServiceInfo(ctx, &service)
+	if err.Err != nil {
+		err.Type = http.StatusInternalServerError
+		err.Err = fmt.Errorf("cant get service %d: %w", service.Id, err.Err)
 		return models.Order{}, err
 	}
 
 	// begin transaction
-	ctxTm, cancel := context.WithTimeout(ctx, c.insertTm)
+	ctxTm, cancel := context.WithTimeout(ctx, c.dbTm)
 	defer cancel()
 
-	tx, err := c.db.Begin(ctxTm, sql.LevelSerializable)
-	if err != nil {
-		return models.Order{}, fmt.Errorf("cant init transaction: %w", err)
+	var tx *sql.Tx
+	tx, err.Err = c.db.Begin(ctxTm, sql.LevelSerializable)
+	if err.Err != nil {
+		err.Type = http.StatusInternalServerError
+		err.Err = fmt.Errorf("cant create transaction: %w", err.Err)
+		return models.Order{}, err
 	}
-	defer c.db.RollbackTransaction(tx)
+	defer tx.Rollback()
 
 	// get current user balance
-	user, err = c.getCreateUser(ctxTm, tx, user)
-	if err != nil {
+	err.Err = c.getCreateUser(ctxTm, tx, &user)
+	if err.Err != nil {
+		err.Type = http.StatusInternalServerError
+		err.Err = fmt.Errorf("cant get user %d: %w", user.Id, err.Err)
 		return models.Order{}, err
 	}
 
@@ -89,122 +60,138 @@ func (c *Controller) AddOrder(ctx context.Context, orderInfo models.AddOrderRequ
 	order.UserId = user.Id
 	order.ServiceId = service.Id
 	order.Amount = orderInfo.Amount
-	order, err = c.db.CreateOrder(ctxTm, tx, order)
-	if err != nil {
+	order, err.Err = c.db.CreateOrder(ctxTm, tx, order)
+	if err.Err != nil {
+		err.Type = http.StatusInternalServerError
+		err.Err = fmt.Errorf("cant create order: %w", err.Err)
 		return models.Order{}, err
 	}
 
 	// change user balance according to order
-	if service.ServiceType == "accrual" {
-		order, user, err = handleAccrual(order, user, service)
+	if service.ServiceType == consts.OperationAccrual {
+		handleAccrual(&order, &user, &service)
 	} else {
-		order, user, err = handleWithdraw(order, user, service)
+		err.Err = handleWithdraw(&order, &user, &service)
 	}
-	if err != nil {
+	if err.Err != nil {
+		err.Type = http.StatusInternalServerError
+		err.Err = fmt.Errorf("cant perform %s: %w", service.ServiceType, err.Err)
 		return models.Order{}, err
 	}
 
 	// update user
-	user, err = c.db.UpdateUser(ctxTm, tx, user)
-	if err != nil {
+	user, err.Err = c.db.UpdateUser(ctxTm, tx, user)
+	if err.Err != nil {
+		err.Type = http.StatusInternalServerError
+		err.Err = fmt.Errorf("cant update user %d: %w", user.Id, err.Err)
 		return models.Order{}, err
 	}
 
 	// update order
-	order, err = c.db.UpdateOrder(ctxTm, tx, order)
-	if err != nil {
+	order, err.Err = c.db.UpdateOrder(ctxTm, tx, order)
+	if err.Err != nil {
+		err.Type = http.StatusInternalServerError
+		err.Err = fmt.Errorf("cant update order: %w", err.Err)
 		return models.Order{}, err
 	}
 
 	// commit transaction
-	c.db.CommitTransaction(tx)
+	tx.Commit()
 
-	return order, nil
+	return order, err
 }
 
-func acceptOrder(order models.Order, user models.User, service models.Service) (models.Order, models.User, error) {
-	if service.ServiceType == "accrual" {
+func acceptOrder(order *models.Order, user *models.User, service *models.Service) {
+	if service.ServiceType == consts.OperationAccrual {
 		user.Balance += order.Amount
 		user.FrozenBalance -= order.Amount
 	} else {
 		user.FrozenBalance -= order.Amount
 	}
 
-	order.ProofedAtStr = "now()"
-	order.Status = "success"
-
-	return order, user, nil
+	order.ProofedAtStr = consts.ProofedNow
+	order.Status = consts.OrderSuccess
 }
 
-func declineOrder(order models.Order, user models.User, service models.Service) (models.Order, models.User, error) {
-	if service.ServiceType == "accrual" {
+func declineOrder(order *models.Order, user *models.User, service *models.Service) {
+	if service.ServiceType == consts.OperationAccrual {
 		user.FrozenBalance -= order.Amount
 	} else {
 		user.Balance += order.Amount
 		user.FrozenBalance -= order.Amount
 	}
 
-	order.ProofedAtStr = "now()"
-	order.Status = "success"
-
-	return order, user, nil
-
+	order.ProofedAtStr = consts.ProofedNow
+	order.Status = consts.OrderSuccess
 }
 
-func (c *Controller) ChangeOrderStatus(ctx context.Context, orderInfo models.ChangeOrderRequest) (models.Order, error) {
-	var err error
+func (c *Controller) ChangeOrderStatus(
+	ctx context.Context,
+	orderInfo models.ChangeOrderRequest,
+) (models.Order, models.InternalError) {
+	var err models.InternalError
 
 	// validate params
-	err = validateChangeStatusParams(orderInfo)
-	if err != nil {
+	err.Err = validateChangeStatusParams(orderInfo)
+	if err.Err != nil {
+		err.Type = http.StatusBadRequest
+		err.Err = fmt.Errorf("validation error: %w", err.Err)
 		return models.Order{}, err
 	}
 
 	// init transaction
-	ctxTm, cancel := context.WithTimeout(ctx, c.insertTm)
+	ctxTm, cancel := context.WithTimeout(ctx, c.dbTm)
 	defer cancel()
 
-	tx, err := c.db.Begin(ctxTm, sql.LevelSerializable)
-	if err != nil {
-		return models.Order{}, fmt.Errorf("cant init transaction: %w", err)
+	var tx *sql.Tx
+	tx, err.Err = c.db.Begin(ctxTm, sql.LevelSerializable)
+	if err.Err != nil {
+		err.Type = http.StatusInternalServerError
+		err.Err = fmt.Errorf("cant create transaction: %w", err.Err)
+		return models.Order{}, err
 	}
-	defer c.db.RollbackTransaction(tx)
+	defer tx.Rollback()
 
 	// get full info about order, user and service by order_id
 	order, user, service := models.Order{Id: orderInfo.OrderId}, models.User{}, models.Service{}
-	order, user, service, err = c.db.GetFullOrderInfo(ctx, tx, order, user, service)
-	if err != nil {
+	order, user, service, err.Err = c.db.GetFullOrderInfo(ctx, tx, order, user, service)
+	if err.Err != nil {
+		err.Type = http.StatusInternalServerError
+		err.Err = fmt.Errorf("cant get full order info %d: %w", order.Id, err.Err)
 		return models.Order{}, err
 	}
 
-	if order.Status != "in_progress" {
-		return models.Order{}, fmt.Errorf("order with id %d is already ended with status %s", order.Id, order.Status)
+	if order.Status != consts.OrderInProgress {
+		err.Err = fmt.Errorf("order with id %d is already ended with status %s", order.Id, order.Status)
+		err.Type = http.StatusBadRequest
+		return models.Order{}, err
 	}
 
 	// manipulate with balance
-	if orderInfo.Action == "proof" {
-		order, user, err = acceptOrder(order, user, service)
+	if orderInfo.Action == consts.OrderProof {
+		acceptOrder(&order, &user, &service)
 	} else {
-		order, user, err = declineOrder(order, user, service)
-	}
-	if err != nil {
-		return models.Order{}, err
+		declineOrder(&order, &user, &service)
 	}
 
 	// update user
-	user, err = c.db.UpdateUser(ctxTm, tx, user)
-	if err != nil {
+	user, err.Err = c.db.UpdateUser(ctxTm, tx, user)
+	if err.Err != nil {
+		err.Type = http.StatusInternalServerError
+		err.Err = fmt.Errorf("cant update user %d: %w", user.Id, err.Err)
 		return models.Order{}, err
 	}
 
 	// update order
-	order, err = c.db.UpdateOrder(ctxTm, tx, order)
-	if err != nil {
+	order, err.Err = c.db.UpdateOrder(ctxTm, tx, order)
+	if err.Err != nil {
+		err.Type = http.StatusInternalServerError
+		err.Err = fmt.Errorf("cant update order %d: %w", order.Id, err.Err)
 		return models.Order{}, err
 	}
 
 	// commit transaction
-	c.db.CommitTransaction(tx)
+	tx.Commit()
 
-	return order, nil
+	return order, err
 }
