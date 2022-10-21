@@ -22,9 +22,6 @@ func InitializeHandler(cfg *koanf.Koanf) (*Handler, error) {
 	if err != nil {
 		return nil, err
 	}
-	handler, err := NewHandler(controller)
-	if err != nil {
-		return nil, err
-	}
+	handler := NewHandler(controller)
 	return handler, nil
 }

@@ -10,7 +10,23 @@ import (
 )
 
 func (h *Handler) GenerateReport(ctx *gin.Context) {
-	ctx.JSON(http.StatusBadRequest, struct{}{})
+	params := ctx.Request.URL.Query()
+
+	month, ok := params["month"]
+	if !ok {
+		log.WithError(fmt.Errorf("cant find month in req query")).Error("cant process request body")
+		ctx.JSON(http.StatusBadRequest, consts.ErrorDescriptions[http.StatusBadRequest])
+		return
+	}
+
+	resp, err := h.ctrl.GenerateReport(ctx, models.GenerateReportRequest(month[0]))
+	if err.Err != nil {
+		log.WithError(err.Err).Error("cant generate report")
+		ctx.JSON(err.Type, consts.ErrorDescriptions[err.Type])
+		return
+	}
+
+	ctx.JSON(http.StatusOK, resp)
 }
 
 func (h *Handler) GetUserHistory(ctx *gin.Context) {
@@ -57,6 +73,7 @@ func (h *Handler) GetUserHistory(ctx *gin.Context) {
 	})
 
 	if err.Err != nil {
+		log.WithError(err.Err).Error("cant extract users history")
 		ctx.JSON(err.Type, consts.ErrorDescriptions[err.Type])
 		return
 	}
