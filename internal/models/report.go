@@ -36,7 +36,7 @@ type HistoryFrame struct {
 	Operations      []History `json:"operations"`
 }
 
-type SaveReportRequest string
+type GenerateReportRequest string
 
 type CSVRow struct {
 	Id       int64
