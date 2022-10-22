@@ -18,10 +18,7 @@ func InitializeHandler(cfg *koanf.Koanf) (*Handler, error) {
 	if err != nil {
 		return nil, err
 	}
-	controller, err := controllers.NewController(cfg, creditHolidaysDB)
-	if err != nil {
-		return nil, err
-	}
+	controller := controllers.NewController(cfg, creditHolidaysDB)
 	handler := NewHandler(controller)
 	return handler, nil
 }
