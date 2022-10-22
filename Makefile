@@ -4,6 +4,10 @@ up:
 down:
 	docker compose -f ./deployments/docker-compose.yml down
 
+make swag:
+	go install github.com/swaggo/swag/cmd/swag@latest
+	swag init --parseDependency --parseInternal -g cmd/main.go
+
 test:
 	echo "Not implemented"
 
