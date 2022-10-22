@@ -3,6 +3,10 @@ version: "3.6"
 networks:
   backend:
 
+volumes:
+  pg_data:
+  static:
+
 services:
   app:
     container_name: app_credit_holidays
@@ -15,6 +19,8 @@ services:
     environment:
       - TZ=Europe/Moscow
       - CONFIG_PATH=/app/configs/config.yml
+    volumes:
+      - static:/app/static
     depends_on:
       pg_credit_holidays:
         condition: service_healthy
@@ -38,6 +44,7 @@ services:
       timeout: 5s
       retries: 5
     volumes:
+      - pg_data:/var/lib/postgresql/data
       - ../scripts/create_tables.sql:/docker-entrypoint-initdb.d/create_tables.sql
     networks:
       - backend
