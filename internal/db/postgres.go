@@ -181,10 +181,10 @@ func (p *PostgresDB) GetHistoryFrame(ctx context.Context, frame models.HistoryFr
 		return models.HistoryFrame{}, err
 	}
 
-	query := `SELECT o.id, o.create_at, o.proofed_at, o.status, o.amount, s.name, s.description, s.service_type
+	query := `SELECT o.id, o.created_at, o.proofed_at, o.status, o.amount, s.name, s.description, s.service_type
               FROM orders o
-                join services s on o.service_id = s.id and o.user_id = $1
-              WHERE o.created_at >= $2 AND o.created_at <= $2 ORDER BY $3 LIMIT $4 OFFSET $5`
+                JOIN services s on o.service_id = s.id and o.user_id = $1
+              WHERE o.created_at >= $2 AND o.created_at <= $3 ORDER BY $4 LIMIT $5 OFFSET $6`
 	rows, err := p.db.QueryContext(ctx, query, frame.UserId, frame.FromDate, frame.ToDate,
 		frame.OrderBy, frame.Limit, frame.Offset)
 	if err != nil {
@@ -195,8 +195,8 @@ func (p *PostgresDB) GetHistoryFrame(ctx context.Context, frame models.HistoryFr
 
 	for rows.Next() {
 		tmp := models.History{}
-		err := rows.Scan(&tmp.OrderId, &tmp.CreateAt, &tmp.ProofedAt, &tmp.Status, &tmp.ServiceName,
-			&tmp.ServiceDescription, &tmp.ServiceType, &tmp.Amount)
+		err := rows.Scan(&tmp.OrderId, &tmp.CreateAt, &tmp.ProofedAt, &tmp.Status, &tmp.Amount, &tmp.ServiceName,
+			&tmp.ServiceDescription, &tmp.ServiceType)
 		if err != nil {
 			return models.HistoryFrame{}, err
 		}
@@ -211,7 +211,7 @@ func (p *PostgresDB) FormReport(ctx context.Context, data models.CSVData) (model
               FROM orders o JOIN services s ON o.service_id = s.id
               WHERE o.status = 'success' and date_part('month', o.created_at) = $1 and date_part('year', o.created_at) = $2
               GROUP BY s.id, s.name, s.service_type ORDER BY s.id`
-	rows, err := p.db.QueryContext(ctx, query, int(data.Period.Month()), data.Period.Year)
+	rows, err := p.db.QueryContext(ctx, query, int(data.Period.Month()), data.Period.Year())
 	if err != nil {
 		return models.CSVData{}, err
 	}
