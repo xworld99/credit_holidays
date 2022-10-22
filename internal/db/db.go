@@ -10,12 +10,14 @@ import (
 type CreditHolidaysDB interface {
 	// general
 	Begin(context.Context, sql.IsolationLevel) (*sql.Tx, error)
+	Commit(*sql.Tx)
+	Rollback(*sql.Tx)
 	Close()
 
 	// users interaction
 	GetUserById(context.Context, models.User) (models.User, error)
 	UpdateUser(context.Context, *sql.Tx, models.User) (models.User, error)
-	GetCreateUser(context.Context, *sql.Tx, models.User) (models.User, error)
+	InsertUserIfNotExists(context.Context, *sql.Tx, models.User) (models.User, error)
 
 	// services interaction
 	GetServicesList(context.Context) ([]models.Service, error)

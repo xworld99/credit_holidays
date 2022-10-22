@@ -48,6 +48,14 @@ func (p *PostgresDB) Begin(ctx context.Context, level sql.IsolationLevel) (*sql.
 	return p.db.BeginTx(ctx, &sql.TxOptions{Isolation: level})
 }
 
+func (p *PostgresDB) Commit(tx *sql.Tx) {
+	tx.Commit()
+}
+
+func (p *PostgresDB) Rollback(tx *sql.Tx) {
+	tx.Rollback()
+}
+
 func (p *PostgresDB) Close() {
 	if p.db != nil {
 		p.db.Close()
@@ -64,7 +72,7 @@ func (p *PostgresDB) GetUserById(ctx context.Context, u models.User) (models.Use
 	return u, err
 }
 
-func (p *PostgresDB) GetCreateUser(ctx context.Context, tx *sql.Tx, u models.User) (models.User, error) {
+func (p *PostgresDB) InsertUserIfNotExists(ctx context.Context, tx *sql.Tx, u models.User) (models.User, error) {
 	query := `INSERT INTO users(id, balance, frozen_balance) VALUES ($1, 0, 0) ON CONFLICT DO NOTHING RETURNING *`
 	err := tx.QueryRowContext(ctx, query, u.Id).Scan(&u.Id, &u.Balance, &u.FrozenBalance)
 	if err != nil {
