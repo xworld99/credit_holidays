@@ -22,7 +22,7 @@ type History struct {
 	ServiceName        string    `json:"service_name"`
 	ServiceDescription string    `json:"service_description"`
 	ServiceType        string    `json:"service_type"`
-	Amount             float64   `json:"amount"`
+	Amount             int64     `json:"amount"`
 }
 
 type HistoryFrame struct {
@@ -42,7 +42,7 @@ type CSVRow struct {
 	Id       int64
 	Name     string
 	Type     string
-	CashFlow float64
+	CashFlow int64
 }
 
 type CSVData struct {

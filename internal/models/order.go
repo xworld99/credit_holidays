@@ -3,9 +3,9 @@ package models
 import "time"
 
 type AddOrderRequest struct {
-	UserId    int64   `json:"user_id"`
-	ServiceId int64   `json:"service_id"`
-	Amount    float64 `json:"amount"`
+	UserId    int64 `json:"user_id"`
+	ServiceId int64 `json:"service_id"`
+	Amount    int64 `json:"amount"`
 }
 
 type ChangeOrderRequest struct {
@@ -20,6 +20,6 @@ type Order struct {
 	ProofedAtStr string    `json:"-"`
 	UserId       int64     `json:"-"`
 	ServiceId    int64     `json:"-"`
-	Amount       float64   `json:"amount"`
+	Amount       int64     `json:"amount"`
 	Status       string    `json:"status"`
 }
