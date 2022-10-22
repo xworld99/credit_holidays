@@ -30,7 +30,7 @@ func (c *Controller) AddOrder(
 	// get service
 	err.Err = c.getServiceInfo(ctx, &service)
 	if err.Err != nil {
-		err.Type = http.StatusInternalServerError
+		err.Type = http.StatusNotFound
 		err.Err = fmt.Errorf("cant get service %d: %w", service.Id, err.Err)
 		return models.Order{}, err
 	}

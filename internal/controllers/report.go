@@ -41,7 +41,7 @@ func (c *Controller) GenerateReport(ctx context.Context, request models.Generate
 	var order models.Order
 	order, err.Err = c.db.GetLastOrderMonth(ctxTm, csvdata.Period)
 	if err.Err != nil {
-		err.Type = http.StatusInternalServerError
+		err.Type = http.StatusNotFound
 		err.Err = fmt.Errorf("cant get order: %w", err.Err)
 		return "", err
 	}

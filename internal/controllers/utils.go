@@ -12,7 +12,7 @@ import (
 )
 
 func parseTime(t string) (time.Time, error) {
-	layout := "02-02-2002"
+	layout := "02-01-2006"
 	res, err := time.Parse(layout, t)
 	if err != nil {
 		return time.Time{}, fmt.Errorf("time isnt fits layout: '%s': %w", layout, err)
@@ -111,7 +111,7 @@ func validateSaveReportParams(request models.GenerateReportRequest) (models.CSVD
 	var res models.CSVData
 	var err error
 
-	res.Period, err = parseTime(string(request))
+	res.Period, err = parseTime("01-" + string(request))
 	if err != nil {
 		return models.CSVData{}, err
 	}

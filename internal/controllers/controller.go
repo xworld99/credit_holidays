@@ -13,12 +13,12 @@ type Controller struct {
 	staticPath string
 }
 
-func NewController(cfg *koanf.Koanf, db db.CreditHolidaysDB) (*Controller, error) {
+func NewController(cfg *koanf.Koanf, db db.CreditHolidaysDB) *Controller {
 	return &Controller{
 		db:         db,
 		dbTm:       cfg.Duration("timeout.db_transaction"),
 		staticPath: cfg.String("path.static"),
-	}, nil
+	}
 }
 
 func (c *Controller) Close() {

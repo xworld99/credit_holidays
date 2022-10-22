@@ -29,7 +29,7 @@ func (c *Controller) GetBalance(
 	user := models.User{Id: id}
 	user, err.Err = c.db.GetUserById(ctxTm, user)
 	if err.Err != nil {
-		err.Type = http.StatusInternalServerError
+		err.Type = http.StatusNotFound
 		err.Err = fmt.Errorf("cant get user by id: %w", err.Err)
 		return models.User{}, err
 	}
