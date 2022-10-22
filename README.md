@@ -26,4 +26,3 @@
 1. local tests, tests -> gomock
 2. squirrel instead of raw sql
 3. Postgres config
-4. converting money to float64
