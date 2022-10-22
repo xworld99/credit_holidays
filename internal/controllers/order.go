@@ -46,10 +46,10 @@ func (c *Controller) AddOrder(
 		err.Err = fmt.Errorf("cant create transaction: %w", err.Err)
 		return models.Order{}, err
 	}
-	defer tx.Rollback()
+	defer c.db.Rollback(tx)
 
 	// get current user balance
-	err.Err = c.getCreateUser(ctxTm, tx, &user)
+	err.Err = c.insertUserIfNotExists(ctxTm, tx, &user)
 	if err.Err != nil {
 		err.Type = http.StatusInternalServerError
 		err.Err = fmt.Errorf("cant get user %d: %w", user.Id, err.Err)
@@ -96,7 +96,7 @@ func (c *Controller) AddOrder(
 	}
 
 	// commit transaction
-	tx.Commit()
+	c.db.Commit(tx)
 
 	return order, err
 }
@@ -122,7 +122,7 @@ func declineOrder(order *models.Order, user *models.User, service *models.Servic
 	}
 
 	order.ProofedAtStr = consts.ProofedNow
-	order.Status = consts.OrderSuccess
+	order.Status = consts.OrderDeclined
 }
 
 func (c *Controller) ChangeOrderStatus(
@@ -150,7 +150,7 @@ func (c *Controller) ChangeOrderStatus(
 		err.Err = fmt.Errorf("cant create transaction: %w", err.Err)
 		return models.Order{}, err
 	}
-	defer tx.Rollback()
+	defer c.db.Rollback(tx)
 
 	// get full info about order, user and service by order_id
 	order, user, service := models.Order{Id: orderInfo.OrderId}, models.User{}, models.Service{}
@@ -191,7 +191,7 @@ func (c *Controller) ChangeOrderStatus(
 	}
 
 	// commit transaction
-	tx.Commit()
+	c.db.Commit(tx)
 
 	return order, err
 }

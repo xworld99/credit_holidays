@@ -37,12 +37,12 @@ func (c *Controller) GetBalance(
 	return user, err
 }
 
-func (c *Controller) getCreateUser(ctx context.Context, tx *sql.Tx, user *models.User) error {
+func (c *Controller) insertUserIfNotExists(ctx context.Context, tx *sql.Tx, user *models.User) error {
 	ctxTm, cancel := context.WithTimeout(ctx, c.dbTm)
 	defer cancel()
 
 	var err error
-	*user, err = c.db.GetCreateUser(ctxTm, tx, *user)
+	*user, err = c.db.InsertUserIfNotExists(ctxTm, tx, *user)
 	if err != nil {
 		return err
 	}
