@@ -58,7 +58,7 @@ func (c *CSVData) ToStringSlice() [][]string {
 			fmt.Sprintf("%d", r.Id),
 			r.Name,
 			r.Type,
-			fmt.Sprintf("%.8f", r.CashFlow),
+			fmt.Sprintf("%d", r.CashFlow),
 		})
 	}
 
