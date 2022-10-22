@@ -1,0 +1,288 @@
+basePath: /
+definitions:
+  models.AddOrderRequest:
+    properties:
+      amount:
+        type: number
+      service_id:
+        type: integer
+      user_id:
+        type: integer
+    type: object
+  models.ChangeOrderRequest:
+    properties:
+      action:
+        type: string
+      order_id:
+        type: integer
+    type: object
+  models.History:
+    properties:
+      amount:
+        type: number
+      created_at:
+        type: string
+      order_id:
+        type: integer
+      proofed_at:
+        type: string
+      service_description:
+        type: string
+      service_name:
+        type: string
+      service_type:
+        type: string
+      status:
+        type: string
+    type: object
+  models.HistoryFrame:
+    properties:
+      current_offset:
+        type: integer
+      operations:
+        items:
+          $ref: '#/definitions/models.History'
+        type: array
+      total_operations:
+        type: integer
+      user_id:
+        type: integer
+    type: object
+  models.Order:
+    properties:
+      amount:
+        type: number
+      create_at:
+        type: string
+      id:
+        type: integer
+      proofed_at:
+        type: string
+      status:
+        type: string
+    type: object
+  models.Service:
+    properties:
+      confirmation_needed:
+        type: boolean
+      description:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      service_type:
+        type: string
+    type: object
+  models.User:
+    properties:
+      balance:
+        type: number
+      frozen_balance:
+        type: number
+      id:
+        type: integer
+    type: object
+host: 0.0.0.0:8080
+info:
+  contact: {}
+  description: API for Credit Holidays app
+  title: CreditHolidaysAPI
+  version: "1.0"
+paths:
+  /order/add_order:
+    post:
+      consumes:
+      - application/json
+      description: initiates a change in the user's balance, returns order info
+      parameters:
+      - description: Info about order
+        in: body
+        name: info
+        required: true
+        schema:
+          $ref: '#/definitions/models.AddOrderRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: created order
+          schema:
+            $ref: '#/definitions/models.Order'
+        "400":
+          description: bad request
+          schema:
+            type: string
+        "500":
+          description: internal server error
+          schema:
+            type: string
+      summary: create new order for user with specific service
+      tags:
+      - order
+  /order/change_order_status:
+    post:
+      consumes:
+      - application/json
+      description: proof or decline existing order, return current state of order
+      parameters:
+      - description: Info about order
+        in: body
+        name: info
+        required: true
+        schema:
+          $ref: '#/definitions/models.ChangeOrderRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: proofed or declined order
+          schema:
+            $ref: '#/definitions/models.Order'
+        "400":
+          description: bad request
+          schema:
+            type: string
+        "500":
+          description: internal server error
+          schema:
+            type: string
+      summary: change status of existing order
+      tags:
+      - order
+  /report/generate_report:
+    get:
+      consumes:
+      - application/json
+      description: generate report with description of services in specific month
+        in format "MM-YYYY"
+      parameters:
+      - description: month of year in format MM-YYYY
+        in: query
+        name: month
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: path to generated report in static dir
+          schema:
+            type: string
+        "400":
+          description: bad request
+          schema:
+            type: string
+        "500":
+          description: internal server error
+          schema:
+            type: string
+      summary: generate report
+      tags:
+      - report
+  /service/get_all:
+    get:
+      consumes:
+      - application/json
+      description: return list of all available services
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: info about services
+          schema:
+            items:
+              $ref: '#/definitions/models.Service'
+            type: array
+        "400":
+          description: bad request
+          schema:
+            type: string
+        "500":
+          description: internal server error
+          schema:
+            type: string
+      summary: get info about services
+      tags:
+      - service
+  /user/get_balance:
+    get:
+      consumes:
+      - application/json
+      description: return balances of user if it exists
+      parameters:
+      - description: id of user
+        in: query
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: info about user
+          schema:
+            $ref: '#/definitions/models.User'
+        "400":
+          description: bad request
+          schema:
+            type: string
+        "500":
+          description: internal server error
+          schema:
+            type: string
+      summary: access user balance
+      tags:
+      - user
+  /user/get_history:
+    get:
+      consumes:
+      - application/json
+      description: return list of orders attached to specific user
+      parameters:
+      - description: id of user
+        in: query
+        name: id
+        required: true
+        type: integer
+      - description: start date in format DD-MM-YYYY
+        in: query
+        name: from_date
+        required: true
+        type: string
+      - description: end date in format DD-MM-YYYY
+        in: query
+        name: to_date
+        required: true
+        type: string
+      - description: sorting type for orders = amount, created_at, default = created_at
+        in: query
+        name: order_by
+        type: string
+      - description: max orders in response default 10
+        in: query
+        name: limit
+        type: integer
+      - description: offset default 0
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: info about user
+          schema:
+            $ref: '#/definitions/models.HistoryFrame'
+        "400":
+          description: bad request
+          schema:
+            type: string
+        "500":
+          description: internal server error
+          schema:
+            type: string
+      summary: return history of user`s orders
+      tags:
+      - user
+swagger: "2.0"

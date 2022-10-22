@@ -8,6 +8,18 @@ import (
 	"net/http"
 )
 
+// AddOrder godoc
+// @Summary create new order for user with specific service
+// @Schemes
+// @Description initiates a change in the user's balance, returns order info
+// @Tags order
+// @Accept json
+// @Produce json
+// @Param info body models.AddOrderRequest true "Info about order"
+// @Success 200 {object} models.Order "created order"
+// @Failure 400 {string} string "bad request"
+// @Failure 500 {string} sting  "internal server error"
+// @Router /order/add_order [post]
 func (h *Handler) AddOrder(ctx *gin.Context) {
 	var reqData models.AddOrderRequest
 
@@ -28,6 +40,18 @@ func (h *Handler) AddOrder(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, resp)
 }
 
+// ChangeOrderStatus godoc
+// @Summary change status of existing order
+// @Schemes
+// @Description proof or decline existing order, return current state of order
+// @Tags order
+// @Accept json
+// @Produce json
+// @Param info body models.ChangeOrderRequest true "Info about order"
+// @Success 200 {object} models.Order "proofed or declined order"
+// @Failure 400 {string} string "bad request"
+// @Failure 500 {string} sting  "internal server error"
+// @Router /order/change_order_status [post]
 func (h *Handler) ChangeOrderStatus(ctx *gin.Context) {
 	var reqData models.ChangeOrderRequest
 

@@ -1,12 +1,15 @@
 package main
 
 import (
+	_ "credit_holidays/docs"
 	"credit_holidays/internal/handlers"
 	"github.com/gin-gonic/gin"
 	"github.com/knadh/koanf"
 	"github.com/knadh/koanf/parsers/yaml"
 	"github.com/knadh/koanf/providers/file"
 	log "github.com/sirupsen/logrus"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 	"os"
 )
 
@@ -45,6 +48,9 @@ func main() {
 	}
 
 	r := gin.Default()
+
+	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+
 	r.Static("/reports", cfg.String("path.static"))
 
 	userGroup := r.Group("/user")
@@ -56,7 +62,7 @@ func main() {
 	orderGroup.POST("/change_order_status", handler.ChangeOrderStatus)
 
 	reportGroup := r.Group("/report")
-	reportGroup.GET("/save_report", handler.GenerateReport)
+	reportGroup.GET("/generate_report", handler.GenerateReport)
 
 	serviceGroup := r.Group("/service")
 	serviceGroup.GET("/get_all", handler.GetServicesList)
