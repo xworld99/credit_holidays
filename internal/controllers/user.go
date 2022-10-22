@@ -29,7 +29,7 @@ func (c *Controller) GetBalance(
 	user := models.User{Id: id}
 	user, err.Err = c.db.GetUserById(ctxTm, user)
 	if err.Err != nil {
-		err.Type = http.StatusBadRequest
+		err.Type = http.StatusInternalServerError
 		err.Err = fmt.Errorf("cant get user by id: %w", err.Err)
 		return models.User{}, err
 	}
@@ -89,4 +89,31 @@ func handleWithdraw(order *models.Order, user *models.User, service *models.Serv
 	}
 
 	return err
+}
+
+func (c *Controller) GetHistory(
+	ctx context.Context,
+	request models.GetHistoryRequest,
+) (models.HistoryFrame, models.InternalError) {
+	var err models.InternalError
+	var history models.HistoryFrame
+
+	history, err.Err = validateGetHistoryParams(request)
+	if err.Err != nil {
+		err.Type = http.StatusBadRequest
+		err.Err = fmt.Errorf("validation error: %w", err.Err)
+		return models.HistoryFrame{}, err
+	}
+
+	ctxTm, cancel := context.WithTimeout(ctx, c.dbTm)
+	defer cancel()
+
+	history, err.Err = c.db.GetHistoryFrame(ctxTm, history)
+	if err.Err != nil {
+		err.Type = http.StatusInternalServerError
+		err.Err = fmt.Errorf("cant get history frame: %w", err.Err)
+		return models.HistoryFrame{}, err
+	}
+
+	return history, err
 }

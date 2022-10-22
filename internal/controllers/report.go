@@ -24,33 +24,6 @@ func (c *Controller) GetServicesList(ctx context.Context) ([]models.Service, mod
 	return res, err
 }
 
-func (c *Controller) GetHistory(
-	ctx context.Context,
-	request models.GetHistoryRequest,
-) (models.HistoryFrame, models.InternalError) {
-	var err models.InternalError
-	var history models.HistoryFrame
-
-	history, err.Err = validateGetHistoryParams(request)
-	if err.Err != nil {
-		err.Type = http.StatusBadRequest
-		err.Err = fmt.Errorf("validation error: %w", err.Err)
-		return models.HistoryFrame{}, err
-	}
-
-	ctxTm, cancel := context.WithTimeout(ctx, c.dbTm)
-	defer cancel()
-
-	history, err.Err = c.db.GetHistoryFrame(ctxTm, history)
-	if err.Err != nil {
-		err.Type = http.StatusInternalServerError
-		err.Err = fmt.Errorf("cant get history frame: %w", err.Err)
-		return models.HistoryFrame{}, err
-	}
-
-	return history, err
-}
-
 func (c *Controller) GenerateReport(ctx context.Context, request models.GenerateReportRequest) (string, models.InternalError) {
 	var err models.InternalError
 	var csvdata models.CSVData
