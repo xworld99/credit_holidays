@@ -10,6 +10,11 @@ import (
 	"os"
 )
 
+// @title CreditHolidaysAPI
+// @version 1.0
+// @description API for Credit Holidays app
+// @host 0.0.0.0:8080
+// @basePath /
 func main() {
 	confPath, ok := os.LookupEnv("CONFIG_PATH")
 	if !ok {
