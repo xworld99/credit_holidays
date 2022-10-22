@@ -9,10 +9,13 @@ make swag:
 	swag init --parseDependency --parseInternal -g cmd/main.go
 
 test:
-	echo "Not implemented"
+	go test credit_holidays/...
 
 wire:
 	go install github.com/google/wire/cmd/wire@latest
 	wire credit_holidays/internal/handlers/.
 
-
+generate-mocks:
+	go get github.com/golang/mock/gomock
+	go get github.com/golang/mock/mockgen
+	mockgen -destination=internal/mocks/mock_db.go -package=mocks credit_holidays/internal/db CreditHolidaysDB
