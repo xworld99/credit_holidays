@@ -24,9 +24,14 @@ func TestGetServiceInfo(t *testing.T) {
 			Return(models.Service{Id: 123}, nil).
 			Times(1)
 
-		err := ctrl.getServiceInfo(context.Background(), &models.Service{Id: 123})
+		s := &models.Service{Id: 123}
+		err := ctrl.GetServiceInfo(context.Background(), s)
 		if err != nil {
-			t.Fail()
+			t.Error(
+				"For", *s,
+				"expected", "no error",
+				"got", err.Error(),
+			)
 		}
 	})
 
@@ -43,9 +48,14 @@ func TestGetServiceInfo(t *testing.T) {
 			Return(models.Service{}, fmt.Errorf("no such service")).
 			Times(1)
 
-		err := ctrl.getServiceInfo(context.Background(), &models.Service{Id: 123})
+		s := &models.Service{Id: 123}
+		err := ctrl.GetServiceInfo(context.Background(), s)
 		if err == nil {
-			t.Fail()
+			t.Error(
+				"For", *s,
+				"expected", "no error",
+				"got", err.Error(),
+			)
 		}
 	})
 }
@@ -66,11 +76,15 @@ func TestGetServicesList(t *testing.T) {
 
 		_, err := ctrl.GetServicesList(context.Background())
 		if err.Err != nil {
-			t.Fail()
+			t.Error(
+				"For", "",
+				"expected", "no error",
+				"got", err.Error(),
+			)
 		}
 	})
 
-	t.Run("in correct", func(t *testing.T) {
+	t.Run("incorrect", func(t *testing.T) {
 		mockCtrl := gomock.NewController(t)
 		defer mockCtrl.Finish()
 
@@ -85,7 +99,11 @@ func TestGetServicesList(t *testing.T) {
 
 		_, err := ctrl.GetServicesList(context.Background())
 		if err.Err == nil {
-			t.Fail()
+			t.Error(
+				"For", "",
+				"expected", "error",
+				"got", "no error",
+			)
 		}
 	})
 }

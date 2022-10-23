@@ -28,9 +28,14 @@ func TestGetBalance(t *testing.T) {
 			Return(models.User{Id: 44}, nil).
 			Times(1)
 
-		_, err := ctrl.GetBalance(context.Background(), models.GetBalanceRequest("44"))
+		u := models.GetBalanceRequest("44")
+		_, err := ctrl.GetBalance(context.Background(), u)
 		if err.Err != nil {
-			t.Fail()
+			t.Error(
+				"For", u,
+				"expected", "no error",
+				"got", err.Error(),
+			)
 		}
 	})
 
@@ -47,22 +52,52 @@ func TestGetBalance(t *testing.T) {
 			Return(models.User{}, fmt.Errorf("no user")).
 			Times(1)
 
-		_, err := ctrl.GetBalance(context.Background(), models.GetBalanceRequest("44"))
+		u := models.GetBalanceRequest("44")
+		_, err := ctrl.GetBalance(context.Background(), u)
 		if err.Err == nil {
-			t.Fail()
+			t.Error(
+				"For", u,
+				"expected", "error",
+				"got", "no error",
+			)
 		}
 	})
 
-	t.Run("invalid id", func(t *testing.T) {
+	t.Run("negative id", func(t *testing.T) {
 		mockCtrl := gomock.NewController(t)
 		defer mockCtrl.Finish()
 
 		mockDb := mocks.NewMockCreditHolidaysDB(mockCtrl)
 
 		ctrl := NewController(koanf.New("."), mockDb)
-		_, err := ctrl.GetBalance(context.Background(), models.GetBalanceRequest("-44"))
+
+		u := models.GetBalanceRequest("-44")
+		_, err := ctrl.GetBalance(context.Background(), u)
 		if err.Err == nil {
-			t.Fail()
+			t.Error(
+				"For", u,
+				"expected", "error",
+				"got", "no error",
+			)
+		}
+	})
+
+	t.Run("zero id", func(t *testing.T) {
+		mockCtrl := gomock.NewController(t)
+		defer mockCtrl.Finish()
+
+		mockDb := mocks.NewMockCreditHolidaysDB(mockCtrl)
+
+		ctrl := NewController(koanf.New("."), mockDb)
+
+		u := models.GetBalanceRequest("0")
+		_, err := ctrl.GetBalance(context.Background(), u)
+		if err.Err == nil {
+			t.Error(
+				"For", u,
+				"expected", "error",
+				"got", "no error",
+			)
 		}
 	})
 
@@ -81,9 +116,15 @@ func TestInsertUserIfNotExists(t *testing.T) {
 			Times(1)
 
 		ctrl := NewController(koanf.New("."), mockDb)
-		err := ctrl.insertUserIfNotExists(context.Background(), &sql.Tx{}, &models.User{Id: 123})
+
+		u := &models.User{Id: 123}
+		err := ctrl.InsertUserIfNotExists(context.Background(), &sql.Tx{}, u)
 		if err != nil {
-			t.Fail()
+			t.Error(
+				"For", *u,
+				"expected", "no error",
+				"got", err.Error(),
+			)
 		}
 	})
 	t.Run("user not exists", func(t *testing.T) {
@@ -98,9 +139,15 @@ func TestInsertUserIfNotExists(t *testing.T) {
 			Times(1)
 
 		ctrl := NewController(koanf.New("."), mockDb)
-		err := ctrl.insertUserIfNotExists(context.Background(), &sql.Tx{}, &models.User{Id: 123})
+
+		u := &models.User{Id: 123}
+		err := ctrl.InsertUserIfNotExists(context.Background(), &sql.Tx{}, &models.User{Id: 123})
 		if err != nil {
-			t.Fail()
+			t.Error(
+				"For", *u,
+				"expected", "no error",
+				"got", err.Error(),
+			)
 		}
 	})
 }
