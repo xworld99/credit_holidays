@@ -4,10 +4,9 @@ import (
 	"context"
 	"credit_holidays/internal/models"
 	"fmt"
-	"net/http"
 )
 
-func (c *Controller) getServiceInfo(ctx context.Context, service *models.Service) error {
+func (c *Controller) GetServiceInfo(ctx context.Context, service *models.Service) error {
 	ctxTm, cancel := context.WithTimeout(ctx, c.dbTm)
 	defer cancel()
 
@@ -20,19 +19,17 @@ func (c *Controller) getServiceInfo(ctx context.Context, service *models.Service
 	return nil
 }
 
-func (c *Controller) GetServicesList(ctx context.Context) ([]models.Service, models.InternalError) {
-	var err models.InternalError
+func (c *Controller) GetServicesList(ctx context.Context) ([]models.Service, models.HandlerError) {
+	var err error
 	var res []models.Service
 
 	ctxTm, cancel := context.WithTimeout(ctx, c.dbTm)
 	defer cancel()
 
-	res, err.Err = c.db.GetServicesList(ctxTm)
-	if err.Err != nil {
-		err.Type = http.StatusInternalServerError
-		err.Err = fmt.Errorf("cant get services list: %w", err.Err)
-		return nil, err
+	res, err = c.db.GetServicesList(ctxTm)
+	if err != nil {
+		return nil, models.CreateNotFoundError(fmt.Errorf("cant get services list: %w", err))
 	}
 
-	return res, err
+	return res, models.HandlerError{}
 }
