@@ -1,7 +1,7 @@
 package main
 
 import (
-	_ "credit_holidays/docs"
+	_ "credit_holidays/api"
 	"credit_holidays/internal/handlers"
 	"github.com/gin-gonic/gin"
 	"github.com/knadh/koanf"
@@ -12,6 +12,20 @@ import (
 	ginSwagger "github.com/swaggo/gin-swagger"
 	"os"
 )
+
+func CORSMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.Header("Access-Control-Allow-Origin", "*")
+		c.Header("Access-Control-Allow-Credentials", "true")
+		c.Header("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With")
+		c.Header("Access-Control-Allow-Methods", "POST,HEAD,PATCH, OPTIONS, GET, PUT")
+		if c.Request.Method == "OPTIONS" {
+			c.AbortWithStatus(204)
+			return
+		}
+		c.Next()
+	}
+}
 
 // @title CreditHolidaysAPI
 // @version 1.0
@@ -48,6 +62,9 @@ func main() {
 	}
 
 	r := gin.Default()
+
+	r.Use(CORSMiddleware())
+	r.Use(gin.Recovery())
 
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
