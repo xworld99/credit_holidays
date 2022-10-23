@@ -53,6 +53,12 @@ const docTemplate = `{
                             "type": "string"
                         }
                     },
+                    "404": {
+                        "description": "not found",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
                     "500": {
                         "description": "internal server error",
                         "schema": {
@@ -95,6 +101,12 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "bad request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "not found",
                         "schema": {
                             "type": "string"
                         }
@@ -143,6 +155,12 @@ const docTemplate = `{
                             "type": "string"
                         }
                     },
+                    "404": {
+                        "description": "not found",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
                     "500": {
                         "description": "internal server error",
                         "schema": {
@@ -177,6 +195,12 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "bad request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "not found",
                         "schema": {
                             "type": "string"
                         }
@@ -221,6 +245,12 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "bad request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "not found",
                         "schema": {
                             "type": "string"
                         }
@@ -301,6 +331,12 @@ const docTemplate = `{
                             "type": "string"
                         }
                     },
+                    "404": {
+                        "description": "not found",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
                     "500": {
                         "description": "internal server error",
                         "schema": {
@@ -316,7 +352,7 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "amount": {
-                    "type": "number"
+                    "type": "integer"
                 },
                 "service_id": {
                     "type": "integer"
@@ -341,7 +377,7 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "amount": {
-                    "type": "number"
+                    "type": "integer"
                 },
                 "created_at": {
                     "type": "string"
@@ -390,7 +426,7 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "amount": {
-                    "type": "number"
+                    "type": "integer"
                 },
                 "create_at": {
                     "type": "string"
@@ -430,10 +466,10 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "balance": {
-                    "type": "number"
+                    "type": "integer"
                 },
                 "frozen_balance": {
-                    "type": "number"
+                    "type": "integer"
                 },
                 "id": {
                     "type": "integer"

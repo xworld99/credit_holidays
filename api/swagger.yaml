@@ -3,7 +3,7 @@ definitions:
   models.AddOrderRequest:
     properties:
       amount:
-        type: number
+        type: integer
       service_id:
         type: integer
       user_id:
@@ -19,7 +19,7 @@ definitions:
   models.History:
     properties:
       amount:
-        type: number
+        type: integer
       created_at:
         type: string
       order_id:
@@ -51,7 +51,7 @@ definitions:
   models.Order:
     properties:
       amount:
-        type: number
+        type: integer
       create_at:
         type: string
       id:
@@ -77,9 +77,9 @@ definitions:
   models.User:
     properties:
       balance:
-        type: number
+        type: integer
       frozen_balance:
-        type: number
+        type: integer
       id:
         type: integer
     type: object
@@ -113,6 +113,10 @@ paths:
           description: bad request
           schema:
             type: string
+        "404":
+          description: not found
+          schema:
+            type: string
         "500":
           description: internal server error
           schema:
@@ -141,6 +145,10 @@ paths:
             $ref: '#/definitions/models.Order'
         "400":
           description: bad request
+          schema:
+            type: string
+        "404":
+          description: not found
           schema:
             type: string
         "500":
@@ -173,6 +181,10 @@ paths:
           description: bad request
           schema:
             type: string
+        "404":
+          description: not found
+          schema:
+            type: string
         "500":
           description: internal server error
           schema:
@@ -196,6 +208,10 @@ paths:
             type: array
         "400":
           description: bad request
+          schema:
+            type: string
+        "404":
+          description: not found
           schema:
             type: string
         "500":
@@ -225,6 +241,10 @@ paths:
             $ref: '#/definitions/models.User'
         "400":
           description: bad request
+          schema:
+            type: string
+        "404":
+          description: not found
           schema:
             type: string
         "500":
@@ -276,6 +296,10 @@ paths:
             $ref: '#/definitions/models.HistoryFrame'
         "400":
           description: bad request
+          schema:
+            type: string
+        "404":
+          description: not found
           schema:
             type: string
         "500":
