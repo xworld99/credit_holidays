@@ -2,6 +2,8 @@ package consts
 
 import "net/http"
 
+// consts used in whole application
+
 const (
 	Host              = "0.0.0.0:8080"
 	ReportLinkPattern = "http://%s/reports/%s"
