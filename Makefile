@@ -19,3 +19,4 @@ generate-mocks:
 	go get github.com/golang/mock/gomock
 	go get github.com/golang/mock/mockgen
 	mockgen -destination=internal/mocks/mock_db.go -package=mocks credit_holidays/internal/db CreditHolidaysDB
+	mockgen -destination=internal/mocks/mock_controller.go -package=mocks credit_holidays/internal/controllers CreditHolidaysController
