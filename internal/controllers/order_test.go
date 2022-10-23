@@ -12,149 +12,159 @@ import (
 )
 
 func TestAddOrder(t *testing.T) {
+	t.Run("correct", func(t *testing.T) {
+		mockCtrl := gomock.NewController(t)
+		defer mockCtrl.Finish()
 
-	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
+		mockDb := mocks.NewMockCreditHolidaysDB(mockCtrl)
 
-	mockDb := mocks.NewMockCreditHolidaysDB(mockCtrl)
+		ctrl := NewController(koanf.New("."), mockDb)
 
-	ctrl := NewController(koanf.New("."), mockDb)
+		mockDb.EXPECT().
+			Begin(gomock.Any(), gomock.Any()).
+			Times(1)
 
-	mockDb.EXPECT().
-		Begin(gomock.Any(), gomock.Any()).
-		Times(1)
+		mockDb.EXPECT().
+			InsertUserIfNotExists(gomock.Any(), gomock.Any(), models.User{Id: 123}).
+			Return(models.User{}, nil).
+			Times(1)
 
-	mockDb.EXPECT().
-		InsertUserIfNotExists(gomock.Any(), gomock.Any(), models.User{Id: 123}).
-		Return(models.User{}, nil).
-		Times(1)
+		mockDb.EXPECT().
+			GetServiceById(gomock.Any(), gomock.Any()).
+			Return(models.Service{}, nil).
+			Times(1)
 
-	mockDb.EXPECT().
-		GetServiceById(gomock.Any(), gomock.Any()).
-		Return(models.Service{}, nil).
-		Times(1)
+		mockDb.EXPECT().
+			CreateOrder(gomock.Any(), gomock.Any(), models.Order{Amount: 100.0}).
+			Return(models.Order{}, nil).
+			Times(1)
 
-	mockDb.EXPECT().
-		CreateOrder(gomock.Any(), gomock.Any(), models.Order{Amount: 100.0}).
-		Return(models.Order{}, nil).
-		Times(1)
+		mockDb.EXPECT().
+			UpdateUser(gomock.Any(), gomock.Any(), models.User{}).
+			Return(models.User{}, nil).
+			Times(1)
 
-	mockDb.EXPECT().
-		UpdateUser(gomock.Any(), gomock.Any(), models.User{}).
-		Return(models.User{}, nil).
-		Times(1)
+		mockDb.EXPECT().
+			UpdateOrder(gomock.Any(), gomock.Any(), models.Order{Status: "success", ProofedAtStr: consts.ProofedNow}).
+			Return(models.Order{}, nil).
+			Times(1)
 
-	mockDb.EXPECT().
-		UpdateOrder(gomock.Any(), gomock.Any(), models.Order{Status: "success", ProofedAtStr: consts.ProofedNow}).
-		Return(models.Order{}, nil).
-		Times(1)
+		mockDb.EXPECT().
+			Commit(gomock.Any()).
+			Times(1)
 
-	mockDb.EXPECT().
-		Commit(gomock.Any()).
-		Times(1)
+		mockDb.EXPECT().
+			Rollback(gomock.Any()).
+			Times(1)
 
-	mockDb.EXPECT().
-		Rollback(gomock.Any()).
-		Times(1)
-
-	ctrl.AddOrder(context.Background(), models.AddOrderRequest{
-		UserId:    123,
-		ServiceId: 456,
-		Amount:    100,
+		_, err := ctrl.AddOrder(context.Background(), models.AddOrderRequest{
+			UserId:    123,
+			ServiceId: 456,
+			Amount:    100,
+		})
+		if err.Err != nil {
+			t.Fail()
+		}
 	})
 
 }
 
-func TestChangeOrderStatusProof(t *testing.T) {
+func TestChangeOrderStatus(t *testing.T) {
+	t.Run("correct proof", func(t *testing.T) {
+		mockCtrl := gomock.NewController(t)
+		defer mockCtrl.Finish()
 
-	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
+		mockDb := mocks.NewMockCreditHolidaysDB(mockCtrl)
 
-	mockDb := mocks.NewMockCreditHolidaysDB(mockCtrl)
+		ctrl := NewController(koanf.New("."), mockDb)
 
-	ctrl := NewController(koanf.New("."), mockDb)
+		mockDb.EXPECT().
+			Begin(gomock.Any(), gomock.Any()).
+			Times(1)
 
-	mockDb.EXPECT().
-		Begin(gomock.Any(), gomock.Any()).
-		Times(1)
+		mockDb.EXPECT().
+			GetFullOrderInfo(gomock.Any(), gomock.Any(), models.Order{Id: 123}, models.User{}, models.Service{}).
+			Return(
+				models.Order{Id: 123, Amount: 300, Status: consts.OrderInProgress},
+				models.User{Id: 1, Balance: 123, FrozenBalance: 300},
+				models.Service{ServiceType: consts.OperationWithdraw},
+				nil).
+			Times(1)
 
-	mockDb.EXPECT().
-		GetFullOrderInfo(gomock.Any(), gomock.Any(), models.Order{Id: 123}, models.User{}, models.Service{}).
-		Return(
-			models.Order{Id: 123, Amount: 300, Status: consts.OrderInProgress},
-			models.User{Id: 1, Balance: 123, FrozenBalance: 300},
-			models.Service{ServiceType: consts.OperationWithdraw},
-			nil).
-		Times(1)
+		mockDb.EXPECT().
+			UpdateUser(gomock.Any(), gomock.Any(), models.User{Id: 1, Balance: 123, FrozenBalance: 0}).
+			Return(models.User{}, nil).
+			Times(1)
 
-	mockDb.EXPECT().
-		UpdateUser(gomock.Any(), gomock.Any(), models.User{Id: 1, Balance: 123, FrozenBalance: 0}).
-		Return(models.User{}, nil).
-		Times(1)
+		mockDb.EXPECT().
+			UpdateOrder(
+				gomock.Any(),
+				gomock.Any(),
+				models.Order{Id: 123, Amount: 300, Status: consts.OrderSuccess, ProofedAtStr: consts.ProofedNow}).
+			Return(models.Order{}, nil).
+			Times(1)
 
-	mockDb.EXPECT().
-		UpdateOrder(
-			gomock.Any(),
-			gomock.Any(),
-			models.Order{Id: 123, Amount: 300, Status: consts.OrderSuccess, ProofedAtStr: consts.ProofedNow}).
-		Return(models.Order{}, nil).
-		Times(1)
+		mockDb.EXPECT().
+			Commit(gomock.Any()).
+			Times(1)
 
-	mockDb.EXPECT().
-		Commit(gomock.Any()).
-		Times(1)
+		mockDb.EXPECT().
+			Rollback(gomock.Any()).
+			Times(1)
 
-	mockDb.EXPECT().
-		Rollback(gomock.Any()).
-		Times(1)
+		_, err := ctrl.ChangeOrderStatus(context.Background(), models.ChangeOrderRequest{OrderId: 123, Action: consts.OrderProof})
+		if err.Err != nil {
+			t.Fail()
+		}
+	})
 
-	ctrl.ChangeOrderStatus(context.Background(), models.ChangeOrderRequest{OrderId: 123, Action: consts.OrderProof})
-}
+	t.Run("correct decline", func(t *testing.T) {
+		mockCtrl := gomock.NewController(t)
+		defer mockCtrl.Finish()
 
-func TestChangeOrderStatusDecline(t *testing.T) {
+		mockDb := mocks.NewMockCreditHolidaysDB(mockCtrl)
 
-	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
+		ctrl := NewController(koanf.New("."), mockDb)
 
-	mockDb := mocks.NewMockCreditHolidaysDB(mockCtrl)
+		mockDb.EXPECT().
+			Begin(gomock.Any(), gomock.Any()).
+			Times(1)
 
-	ctrl := NewController(koanf.New("."), mockDb)
+		mockDb.EXPECT().
+			GetFullOrderInfo(gomock.Any(), gomock.Any(), models.Order{Id: 123}, models.User{}, models.Service{}).
+			Return(
+				models.Order{Id: 123, Amount: 300, Status: consts.OrderInProgress},
+				models.User{Id: 1, Balance: 123, FrozenBalance: 300},
+				models.Service{ServiceType: consts.OperationWithdraw},
+				nil).
+			Times(1)
 
-	mockDb.EXPECT().
-		Begin(gomock.Any(), gomock.Any()).
-		Times(1)
+		mockDb.EXPECT().
+			UpdateUser(gomock.Any(), gomock.Any(), models.User{Id: 1, Balance: 423, FrozenBalance: 0}).
+			Return(models.User{}, nil).
+			Times(1)
 
-	mockDb.EXPECT().
-		GetFullOrderInfo(gomock.Any(), gomock.Any(), models.Order{Id: 123}, models.User{}, models.Service{}).
-		Return(
-			models.Order{Id: 123, Amount: 300, Status: consts.OrderInProgress},
-			models.User{Id: 1, Balance: 123, FrozenBalance: 300},
-			models.Service{ServiceType: consts.OperationWithdraw},
-			nil).
-		Times(1)
+		mockDb.EXPECT().
+			UpdateOrder(
+				gomock.Any(),
+				gomock.Any(),
+				models.Order{Id: 123, Amount: 300, Status: consts.OrderDeclined, ProofedAtStr: consts.ProofedNow}).
+			Return(models.Order{}, nil).
+			Times(1)
 
-	mockDb.EXPECT().
-		UpdateUser(gomock.Any(), gomock.Any(), models.User{Id: 1, Balance: 423, FrozenBalance: 0}).
-		Return(models.User{}, nil).
-		Times(1)
+		mockDb.EXPECT().
+			Commit(gomock.Any()).
+			Times(1)
 
-	mockDb.EXPECT().
-		UpdateOrder(
-			gomock.Any(),
-			gomock.Any(),
-			models.Order{Id: 123, Amount: 300, Status: consts.OrderDeclined, ProofedAtStr: consts.ProofedNow}).
-		Return(models.Order{}, nil).
-		Times(1)
+		mockDb.EXPECT().
+			Rollback(gomock.Any()).
+			Times(1)
 
-	mockDb.EXPECT().
-		Commit(gomock.Any()).
-		Times(1)
-
-	mockDb.EXPECT().
-		Rollback(gomock.Any()).
-		Times(1)
-
-	ctrl.ChangeOrderStatus(context.Background(), models.ChangeOrderRequest{OrderId: 123, Action: consts.OrderDecline})
+		_, err := ctrl.ChangeOrderStatus(context.Background(), models.ChangeOrderRequest{OrderId: 123, Action: consts.OrderDecline})
+		if err.Err != nil {
+			t.Fail()
+		}
+	})
 }
 
 func TestAcceptOrder(t *testing.T) {

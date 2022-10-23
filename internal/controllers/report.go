@@ -7,23 +7,6 @@ import (
 	"net/http"
 )
 
-func (c *Controller) GetServicesList(ctx context.Context) ([]models.Service, models.InternalError) {
-	var err models.InternalError
-	var res []models.Service
-
-	ctxTm, cancel := context.WithTimeout(ctx, c.dbTm)
-	defer cancel()
-
-	res, err.Err = c.db.GetServicesList(ctxTm)
-	if err.Err != nil {
-		err.Type = http.StatusInternalServerError
-		err.Err = fmt.Errorf("cant get services list: %w", err.Err)
-		return nil, err
-	}
-
-	return res, err
-}
-
 func (c *Controller) GenerateReport(ctx context.Context, request models.GenerateReportRequest) (string, models.InternalError) {
 	var err models.InternalError
 	var csvdata models.CSVData

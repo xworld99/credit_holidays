@@ -1,18 +1,108 @@
 package controllers
 
 import (
+	"context"
 	"credit_holidays/internal/consts"
+	"credit_holidays/internal/mocks"
 	"credit_holidays/internal/models"
+	"database/sql"
+	"fmt"
+	"github.com/golang/mock/gomock"
+	"github.com/knadh/koanf"
 	"reflect"
 	"testing"
+	"time"
 )
 
 func TestGetBalance(t *testing.T) {
+	t.Run("correct", func(t *testing.T) {
+		mockCtrl := gomock.NewController(t)
+		defer mockCtrl.Finish()
+
+		mockDb := mocks.NewMockCreditHolidaysDB(mockCtrl)
+
+		ctrl := NewController(koanf.New("."), mockDb)
+
+		mockDb.EXPECT().
+			GetUserById(gomock.Any(), models.User{Id: 44}).
+			Return(models.User{Id: 44}, nil).
+			Times(1)
+
+		_, err := ctrl.GetBalance(context.Background(), models.GetBalanceRequest("44"))
+		if err.Err != nil {
+			t.Fail()
+		}
+	})
+
+	t.Run("no user", func(t *testing.T) {
+		mockCtrl := gomock.NewController(t)
+		defer mockCtrl.Finish()
+
+		mockDb := mocks.NewMockCreditHolidaysDB(mockCtrl)
+
+		ctrl := NewController(koanf.New("."), mockDb)
+
+		mockDb.EXPECT().
+			GetUserById(gomock.Any(), models.User{Id: 44}).
+			Return(models.User{}, fmt.Errorf("no user")).
+			Times(1)
+
+		_, err := ctrl.GetBalance(context.Background(), models.GetBalanceRequest("44"))
+		if err.Err == nil {
+			t.Fail()
+		}
+	})
+
+	t.Run("invalid id", func(t *testing.T) {
+		mockCtrl := gomock.NewController(t)
+		defer mockCtrl.Finish()
+
+		mockDb := mocks.NewMockCreditHolidaysDB(mockCtrl)
+
+		ctrl := NewController(koanf.New("."), mockDb)
+		_, err := ctrl.GetBalance(context.Background(), models.GetBalanceRequest("-44"))
+		if err.Err == nil {
+			t.Fail()
+		}
+	})
 
 }
 
 func TestInsertUserIfNotExists(t *testing.T) {
+	t.Run("user exists", func(t *testing.T) {
+		mockCtrl := gomock.NewController(t)
+		defer mockCtrl.Finish()
 
+		mockDb := mocks.NewMockCreditHolidaysDB(mockCtrl)
+
+		mockDb.EXPECT().
+			InsertUserIfNotExists(gomock.Any(), gomock.Any(), models.User{Id: 123}).
+			Return(models.User{Id: 123, Balance: 15, FrozenBalance: 15}, nil).
+			Times(1)
+
+		ctrl := NewController(koanf.New("."), mockDb)
+		err := ctrl.insertUserIfNotExists(context.Background(), &sql.Tx{}, &models.User{Id: 123})
+		if err != nil {
+			t.Fail()
+		}
+	})
+	t.Run("user not exists", func(t *testing.T) {
+		mockCtrl := gomock.NewController(t)
+		defer mockCtrl.Finish()
+
+		mockDb := mocks.NewMockCreditHolidaysDB(mockCtrl)
+
+		mockDb.EXPECT().
+			InsertUserIfNotExists(gomock.Any(), gomock.Any(), models.User{Id: 123}).
+			Return(models.User{Id: 123, Balance: 0, FrozenBalance: 0}, nil).
+			Times(1)
+
+		ctrl := NewController(koanf.New("."), mockDb)
+		err := ctrl.insertUserIfNotExists(context.Background(), &sql.Tx{}, &models.User{Id: 123})
+		if err != nil {
+			t.Fail()
+		}
+	})
 }
 
 func TestHandleAccrual(t *testing.T) {
@@ -129,4 +219,62 @@ func TestHandleWithdraw(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestGetHistory(t *testing.T) {
+	t.Run("correct all fields passed 1", func(t *testing.T) {
+		mockCtrl := gomock.NewController(t)
+		defer mockCtrl.Finish()
+
+		mockDb := mocks.NewMockCreditHolidaysDB(mockCtrl)
+
+		ctrl := NewController(koanf.New("."), mockDb)
+
+		mockDb.EXPECT().
+			GetHistoryFrame(
+				gomock.Any(),
+				models.HistoryFrame{
+					UserId:   123,
+					FromDate: time.Date(2021, time.Month(2), 10, 0, 0, 0, 0, time.UTC),
+					ToDate:   time.Date(2021, time.Month(2), 28, 0, 0, 0, 0, time.UTC),
+					Offset:   12,
+					Limit:    54,
+					OrderBy:  "created_at",
+				}).
+			Return(models.HistoryFrame{}, nil).
+			Times(1)
+
+		_, err := ctrl.GetHistory(context.Background(), models.GetHistoryRequest{UserId: "123", FromDate: "10-02-2021", ToDate: "28-02-2021", Offset: "12", Limit: "54", OrderBy: "created_at"})
+		if err.Err != nil {
+			t.Fail()
+		}
+	})
+
+	t.Run("correct all fields passed 2", func(t *testing.T) {
+		mockCtrl := gomock.NewController(t)
+		defer mockCtrl.Finish()
+
+		mockDb := mocks.NewMockCreditHolidaysDB(mockCtrl)
+
+		ctrl := NewController(koanf.New("."), mockDb)
+
+		mockDb.EXPECT().
+			GetHistoryFrame(
+				gomock.Any(),
+				models.HistoryFrame{
+					UserId:   123,
+					FromDate: time.Date(2021, time.Month(2), 10, 0, 0, 0, 0, time.UTC),
+					ToDate:   time.Date(2021, time.Month(2), 28, 0, 0, 0, 0, time.UTC),
+					Offset:   12,
+					Limit:    54,
+					OrderBy:  "amount",
+				}).
+			Return(models.HistoryFrame{}, nil).
+			Times(1)
+
+		_, err := ctrl.GetHistory(context.Background(), models.GetHistoryRequest{UserId: "123", FromDate: "10-02-2021", ToDate: "28-02-2021", Offset: "12", Limit: "54", OrderBy: "amount"})
+		if err.Err != nil {
+			t.Fail()
+		}
+	})
 }

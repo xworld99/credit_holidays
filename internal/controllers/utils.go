@@ -103,6 +103,7 @@ func validateGetHistoryParams(request models.GetHistoryRequest) (models.HistoryF
 	if _, ok := consts.SortingType[request.OrderBy]; !ok {
 		return models.HistoryFrame{}, fmt.Errorf("unknown order by type")
 	}
+	frame.OrderBy = request.OrderBy
 
 	return frame, nil
 }
