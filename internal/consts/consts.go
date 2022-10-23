@@ -3,6 +3,9 @@ package consts
 import "net/http"
 
 const (
+	Host              = "0.0.0.0:8080"
+	ReportLinkPattern = "http://%s/reports/%s"
+
 	ProofedNow  = "now()"
 	ProofedNull = "null"
 
