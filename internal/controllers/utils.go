@@ -166,3 +166,7 @@ func deleteUnnecessaryReports(dir, filepath string, period time.Time) {
 		os.Remove(f)
 	}
 }
+
+func filepathToLink(path string) string {
+	return fmt.Sprintf(consts.ReportLinkPattern, consts.Host, path)
+}
