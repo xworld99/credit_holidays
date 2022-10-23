@@ -73,8 +73,13 @@ func (p *PostgresDB) GetUserById(ctx context.Context, u models.User) (models.Use
 }
 
 func (p *PostgresDB) InsertUserIfNotExists(ctx context.Context, tx *sql.Tx, u models.User) (models.User, error) {
-	query := `INSERT INTO users(id, balance, frozen_balance) VALUES ($1, 0, 0) ON CONFLICT DO NOTHING RETURNING *`
-	err := tx.QueryRowContext(ctx, query, u.Id).Scan(&u.Id, &u.Balance, &u.FrozenBalance)
+	queryInsert := `INSERT INTO users(id, balance, frozen_balance) VALUES ($1, 0, 0) ON CONFLICT DO NOTHING`
+	_, err := tx.ExecContext(ctx, queryInsert, u.Id)
+	if err != nil {
+		return models.User{}, err
+	}
+	query := `SELECT id, balance, frozen_balance FROM users WHERE id = $1`
+	err = tx.QueryRowContext(ctx, query, u.Id).Scan(&u.Id, &u.Balance, &u.FrozenBalance)
 	if err != nil {
 		return models.User{}, err
 	}
@@ -93,7 +98,7 @@ func (p *PostgresDB) UpdateUser(ctx context.Context, tx *sql.Tx, u models.User) 
 }
 
 func (p *PostgresDB) GetServicesList(ctx context.Context) ([]models.Service, error) {
-	query := `SELECT id, name, description, confirmation_needed FROM services ORDER BY id`
+	query := `SELECT id, name, description, service_type, confirmation_needed FROM services ORDER BY id`
 	rows, err := p.db.QueryContext(ctx, query)
 	if err != nil {
 		return nil, err
@@ -104,7 +109,7 @@ func (p *PostgresDB) GetServicesList(ctx context.Context) ([]models.Service, err
 
 	for rows.Next() {
 		tmp := models.Service{}
-		err := rows.Scan(&tmp.Id, &tmp.Name, &tmp.Description, &tmp.ConfNeeded)
+		err := rows.Scan(&tmp.Id, &tmp.Name, &tmp.Description, &tmp.ServiceType, &tmp.ConfNeeded)
 		if err != nil {
 			return nil, err
 		}
@@ -137,11 +142,23 @@ func (p *PostgresDB) CreateOrder(ctx context.Context, tx *sql.Tx, order models.O
 }
 
 func (p *PostgresDB) UpdateOrder(ctx context.Context, tx *sql.Tx, order models.Order) (models.Order, error) {
-	query := `UPDATE orders SET proofed_at = $1, status = $2 WHERE id = $3
+	query := `UPDATE orders SET proofed_at = %s, status = $1 WHERE id = $2
               RETURNING id, created_at, proofed_at, user_id, service_id, amount, status`
-	builder := tx.QueryRowContext(ctx, query, order.ProofedAtStr, order.Status, order.Id)
-	err := builder.Scan(&order.Id, &order.CreatedAt, &order.ProofedAt, &order.UserId,
+	query = fmt.Sprintf(query, order.ProofedAtStr)
+	builder := tx.QueryRowContext(ctx, query, order.Status, order.Id)
+
+	var createdAt, proofedAt sql.NullTime
+	err := builder.Scan(&order.Id, &createdAt, &proofedAt, &order.UserId,
 		&order.ServiceId, &order.Amount, &order.Status)
+
+	if !createdAt.Valid {
+		return models.Order{}, fmt.Errorf("created_at isnt set for order")
+	}
+	order.CreatedAt = &createdAt.Time
+	if proofedAt.Valid {
+		order.ProofedAt = &proofedAt.Time
+	}
+
 	if err != nil {
 		return models.Order{}, err
 	}
@@ -156,10 +173,10 @@ func (p *PostgresDB) GetFullOrderInfo(
 	user models.User,
 	service models.Service,
 ) (models.Order, models.User, models.Service, error) {
-	query := `SELECT o.amount, o.status, u.balance, u.frozen_balance, s.service_type 
+	query := `SELECT o.amount, o.status, u.id, u.balance, u.frozen_balance, s.service_type 
               FROM orders o JOIN users u on o.user_id = u.id JOIN services s on o.service_id = s.id WHERE o.id = $1`
 	builder := tx.QueryRowContext(ctx, query, order.Id)
-	err := builder.Scan(&order.Amount, &order.Status, &user.Balance, &user.FrozenBalance, &service.ServiceType)
+	err := builder.Scan(&order.Amount, &order.Status, &user.Id, &user.Balance, &user.FrozenBalance, &service.ServiceType)
 	if err != nil {
 		return order, user, service, err
 	}
@@ -169,13 +186,21 @@ func (p *PostgresDB) GetFullOrderInfo(
 
 func (p *PostgresDB) GetLastOrderMonth(ctx context.Context, period time.Time) (models.Order, error) {
 	query := `SELECT created_at FROM orders 
-              WHERE status = 'success' and date_part('month', created_at) = $1 and date_part('year', created_at) = $2`
+              WHERE status = 'success' and date_part('month', created_at) = $1 and date_part('year', created_at) = $2
+              ORDER BY created_at DESC LIMIT 1`
 	var res models.Order
 
-	err := p.db.QueryRowContext(ctx, query, int(period.Month()), period.Year()).Scan(&res.CreatedAt)
+	var createdAt sql.NullTime
+	err := p.db.QueryRowContext(ctx, query, int(period.Month()), period.Year()).Scan(&createdAt)
 	if err != nil {
 		return models.Order{}, err
 	}
+
+	if !createdAt.Valid {
+		return models.Order{}, fmt.Errorf("created_at isnt set for order")
+	}
+
+	res.CreatedAt = &createdAt.Time
 
 	return res, nil
 }
@@ -192,9 +217,9 @@ func (p *PostgresDB) GetHistoryFrame(ctx context.Context, frame models.HistoryFr
 	query := `SELECT o.id, o.created_at, o.proofed_at, o.status, o.amount, s.name, s.description, s.service_type
               FROM orders o
                 JOIN services s on o.service_id = s.id and o.user_id = $1
-              WHERE o.created_at >= $2 AND o.created_at <= $3 ORDER BY $4 LIMIT $5 OFFSET $6`
-	rows, err := p.db.QueryContext(ctx, query, frame.UserId, frame.FromDate, frame.ToDate,
-		frame.OrderBy, frame.Limit, frame.Offset)
+              WHERE o.created_at >= $2 AND o.created_at <= $3 ORDER BY o.%s LIMIT $4 OFFSET $5`
+	query = fmt.Sprintf(query, frame.OrderBy)
+	rows, err := p.db.QueryContext(ctx, query, frame.UserId, frame.FromDate, frame.ToDate, frame.Limit, frame.Offset)
 	if err != nil {
 		return models.HistoryFrame{}, err
 	}
@@ -203,11 +228,22 @@ func (p *PostgresDB) GetHistoryFrame(ctx context.Context, frame models.HistoryFr
 
 	for rows.Next() {
 		tmp := models.History{}
-		err := rows.Scan(&tmp.OrderId, &tmp.CreateAt, &tmp.ProofedAt, &tmp.Status, &tmp.Amount, &tmp.ServiceName,
+
+		var createdAt, proofedAt sql.NullTime
+		err := rows.Scan(&tmp.OrderId, &createdAt, &proofedAt, &tmp.Status, &tmp.Amount, &tmp.ServiceName,
 			&tmp.ServiceDescription, &tmp.ServiceType)
 		if err != nil {
 			return models.HistoryFrame{}, err
 		}
+
+		if !createdAt.Valid {
+			return models.HistoryFrame{}, fmt.Errorf("created_at isnt set for order")
+		}
+		tmp.CreatedAt = &createdAt.Time
+		if proofedAt.Valid {
+			tmp.ProofedAt = &proofedAt.Time
+		}
+
 		frame.Operations = append(frame.Operations, tmp)
 	}
 
