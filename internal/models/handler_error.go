@@ -1,4 +1,4 @@
-package controllers
+package models
 
 import (
 	"net/http"
@@ -13,14 +13,14 @@ func (e *HandlerError) Error() string {
 	return e.Err.Error()
 }
 
-func createBadRequestError(err error) HandlerError {
+func CreateBadRequestError(err error) HandlerError {
 	return HandlerError{Type: http.StatusBadRequest, Err: err}
 }
 
-func createInternalError(err error) HandlerError {
+func CreateInternalError(err error) HandlerError {
 	return HandlerError{Type: http.StatusInternalServerError, Err: err}
 }
 
-func createNotFoundError(err error) HandlerError {
+func CreateNotFoundError(err error) HandlerError {
 	return HandlerError{Type: http.StatusNotFound, Err: err}
 }
