@@ -19,6 +19,7 @@ import (
 // @Param month query string true "month of year in format MM-YYYY"
 // @Success 200 {string} string "path to generated report in static dir"
 // @Failure 400 {string} string "bad request"
+// @Failure 404 {string} string "not found"
 // @Failure 500 {string} sting  "internal server error"
 // @Router /report/generate_report [get]
 func (h *Handler) GenerateReport(ctx *gin.Context) {

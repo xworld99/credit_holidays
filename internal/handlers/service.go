@@ -17,6 +17,7 @@ import (
 // @Produce json
 // @Success 200 {array} models.Service "info about services"
 // @Failure 400 {string} string "bad request"
+// @Failure 404 {string} string "not found"
 // @Failure 500 {string} sting  "internal server error"
 // @Router /service/get_all [get]
 func (h *Handler) GetServicesList(ctx *gin.Context) {

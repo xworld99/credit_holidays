@@ -19,6 +19,7 @@ import (
 // @Param id query int true "id of user"
 // @Success 200 {object} models.User "info about user"
 // @Failure 400 {string} string "bad request"
+// @Failure 404 {string} string "not found"
 // @Failure 500 {string} sting  "internal server error"
 // @Router /user/get_balance [get]
 func (h *Handler) GetBalance(ctx *gin.Context) {
@@ -57,6 +58,7 @@ func (h *Handler) GetBalance(ctx *gin.Context) {
 // @Param offset query int false "offset default 0"
 // @Success 200 {object} models.HistoryFrame "info about user"
 // @Failure 400 {string} string "bad request"
+// @Failure 404 {string} string "not found"
 // @Failure 500 {string} sting  "internal server error"
 // @Router /user/get_history [get]
 func (h *Handler) GetUserHistory(ctx *gin.Context) {

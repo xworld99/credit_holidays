@@ -18,6 +18,7 @@ import (
 // @Param info body models.AddOrderRequest true "Info about order"
 // @Success 200 {object} models.Order "created order"
 // @Failure 400 {string} string "bad request"
+// @Failure 404 {string} string "not found"
 // @Failure 500 {string} sting  "internal server error"
 // @Router /order/add_order [post]
 func (h *Handler) AddOrder(ctx *gin.Context) {
@@ -50,6 +51,7 @@ func (h *Handler) AddOrder(ctx *gin.Context) {
 // @Param info body models.ChangeOrderRequest true "Info about order"
 // @Success 200 {object} models.Order "proofed or declined order"
 // @Failure 400 {string} string "bad request"
+// @Failure 404 {string} string "not found"
 // @Failure 500 {string} sting  "internal server error"
 // @Router /order/change_order_status [post]
 func (h *Handler) ChangeOrderStatus(ctx *gin.Context) {
