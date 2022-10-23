@@ -57,13 +57,14 @@ func TestAddOrder(t *testing.T) {
 			Rollback(gomock.Any()).
 			Times(1)
 
-		_, err := ctrl.AddOrder(context.Background(), models.AddOrderRequest{
-			UserId:    123,
-			ServiceId: 456,
-			Amount:    100,
-		})
+		o := models.AddOrderRequest{UserId: 123, ServiceId: 456, Amount: 100}
+		_, err := ctrl.AddOrder(context.Background(), o)
 		if err.Err != nil {
-			t.Fail()
+			t.Error(
+				"For", o,
+				"expected", "no error",
+				"got", err.Error(),
+			)
 		}
 	})
 
@@ -112,9 +113,14 @@ func TestChangeOrderStatus(t *testing.T) {
 			Rollback(gomock.Any()).
 			Times(1)
 
-		_, err := ctrl.ChangeOrderStatus(context.Background(), models.ChangeOrderRequest{OrderId: 123, Action: consts.OrderProof})
+		o := models.ChangeOrderRequest{OrderId: 123, Action: consts.OrderProof}
+		_, err := ctrl.ChangeOrderStatus(context.Background(), o)
 		if err.Err != nil {
-			t.Fail()
+			t.Error(
+				"For", o,
+				"expected", "no error",
+				"got", err.Error(),
+			)
 		}
 	})
 
@@ -160,9 +166,14 @@ func TestChangeOrderStatus(t *testing.T) {
 			Rollback(gomock.Any()).
 			Times(1)
 
-		_, err := ctrl.ChangeOrderStatus(context.Background(), models.ChangeOrderRequest{OrderId: 123, Action: consts.OrderDecline})
+		o := models.ChangeOrderRequest{OrderId: 123, Action: consts.OrderDecline}
+		_, err := ctrl.ChangeOrderStatus(context.Background(), o)
 		if err.Err != nil {
-			t.Fail()
+			t.Error(
+				"For", o,
+				"expected", "no error",
+				"got", err.Error(),
+			)
 		}
 	})
 }
