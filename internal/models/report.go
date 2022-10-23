@@ -15,14 +15,14 @@ type GetHistoryRequest struct {
 }
 
 type History struct {
-	OrderId            int64     `json:"order_id"`
-	CreateAt           time.Time `json:"created_at"`
-	ProofedAt          time.Time `json:"proofed_at"`
-	Status             string    `json:"status"`
-	ServiceName        string    `json:"service_name"`
-	ServiceDescription string    `json:"service_description"`
-	ServiceType        string    `json:"service_type"`
-	Amount             int64     `json:"amount"`
+	OrderId            int64      `json:"order_id"`
+	CreatedAt          *time.Time `json:"created_at"`
+	ProofedAt          *time.Time `json:"proofed_at,omitempty"`
+	Status             string     `json:"status"`
+	ServiceName        string     `json:"service_name"`
+	ServiceDescription string     `json:"service_description"`
+	ServiceType        string     `json:"service_type"`
+	Amount             int64      `json:"amount"`
 }
 
 type HistoryFrame struct {
