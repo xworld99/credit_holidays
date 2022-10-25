@@ -2,7 +2,7 @@
 
 ## Запуск
 Перед запуском необходимо установить docker, docker-compose, и убедиться, что порты 8080 и 5431 не заняты.
-1. Клонировать репозиторий `git clone git@gitlab.com:ses011/credit_holidays.git`.
+1. Клонировать репозиторий `git clone git@github.com:xworld99/credit_holidays.git`.
 2. Перейти в репозиторий `cd credit_holidays`.
 3. Для запуска ввести команду `make up`.
 4. Для остановки ввести команду `make down`.
@@ -25,7 +25,7 @@
 
 
 ## Примеры запросов
-Запросы можно отправлять через swager, доступные [тут](http://0.0.0.0:8080/swagger/index.html), когда приложение запущено.
+Запросы можно отправлять через swager, доступный [тут](http://0.0.0.0:8080/swagger/index.html), когда приложение запущено.
 
 1. Пополнение баланса пользователя (`service_id = 1` -> пополнение баланса, если пользователя с таким user_id не существует, он создается автоматически (так написано в задании)):
    `curl -X 'POST' 'http://0.0.0.0:8080/order/add_order' -H 'accept: application/json' -H 'Content-Type: application/json' -d '{"amount": 10000, "service_id": 1, "user_id": 1}'`.
